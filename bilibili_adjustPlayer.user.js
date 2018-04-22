@@ -250,6 +250,7 @@
 		autoNextPlist: function (set,video) {
 			if (typeof set !== 'undefined' && video !== null) {
 				try{
+					if (isBangumi('.bilibili-player-electric-panel') === null || isBangumi('.bilibili-player-bangumipay-panel')  === null) { return; }
 					if (isBangumi('.bilibili-player-video-btn-next > i') === null) { return; }
 
 					var nextPlist = function(){
