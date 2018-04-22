@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.29
+// @version     1.30
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -229,7 +229,7 @@
 		danmukuPreventShade: function (set,type) {
 			if (typeof set !== 'undefined' && typeof type !== 'undefined') {
 				try{
-					var controlBtn = isBangumi('.bilibili-player-panel-setting input.bilibili-player-setting-preventshade + label');
+					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-panel input.bilibili-player-setting-preventshade + label');
 					if(controlBtn !== null) {
 						doClick(controlBtn);
 						window.setTimeout(function() {
@@ -242,7 +242,7 @@
 									doClick(controlBtn);
 								}
 							}
-						}, 200);
+						}, 800);
 					}
 				} catch (e) {console.log('danmukuPreventShade：'+e);}
 			}
