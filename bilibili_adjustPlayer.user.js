@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.28.1
+// @version     1.29
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -245,6 +245,18 @@
 						}, 200);
 					}
 				} catch (e) {console.log('danmukuPreventShade：'+e);}
+			}
+		},
+		tabDanmulist: function (set) {
+			if (typeof set !== 'undefined') {
+				try{
+					var controlBtn = isBangumi('.bilibili-player-filter > div[name="tab_danmulist"]:not(.active)');
+					if(controlBtn !== null) {
+						window.setTimeout(function() {
+							doClick(controlBtn);
+						}, 200);
+					}
+				} catch (e) {console.log('tabDanmulist：'+e);}
 			}
 		},
 		autoNextPlist: function (set,video) {
@@ -1642,6 +1654,7 @@
 									}
 
 									adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType);
+									adjustPlayer.tabDanmulist(setting.tabDanmulist);
 
 									//修复没开启“自动宽屏模式”自动关灯失效
 									window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
@@ -1781,7 +1794,10 @@
 								} else {
 									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 								}
+
 								adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType);
+								adjustPlayer.tabDanmulist(setting.tabDanmulist);
+
 								//修复没开启“自动宽屏模式”自动关灯失效
 								window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
 								adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
@@ -2249,8 +2265,8 @@
             				</div>
             			</div>
             		</fieldset>
-            		<fieldset class="otherGroup">
-            			<legend><label>其他</label></legend>
+            		<fieldset class="danmukuGroup">
+            			<legend><label>弹幕</label></legend>
             			<div class="block">
             				<label class="h5">
             					<input name="danmuku" type="checkbox">默认隐藏
@@ -2266,7 +2282,7 @@
             						<option value="off">关闭</option>
             					</select>防挡弹幕<span tooltip="使用帮助：&#10;1：“番剧”页面和普通页面的“防挡弹幕”默认设置竟然不一样？开启后设置让它一致 " class="tipsButton">[?]</span>
 							</label>
-            				<label class="h5"><input name="autoLightOn" type="checkbox">自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
+							<label class="h5"><input name="tabDanmulist" type="checkbox">默认显示弹幕列表</label>
             		</div>
             	</fieldset>
             </div>
@@ -2351,6 +2367,7 @@
             				</select>可调整大小
 							<span tooltip="使用帮助：&#10;1：开启“修改迷你播放器宽度”后，拖动迷你播放器右下角调节按钮，可以调整大小。&#10;2：此功能是“实验功能”，部分页面可能不起作用" class="tipsButton">[?]</span>
 						</label>
+						<label class="h5"><input name="autoLightOn" type="checkbox">自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
             		</div>
             	</fieldset>
             </div>
