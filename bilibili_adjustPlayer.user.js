@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.30
+// @version     1.31
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -262,9 +262,6 @@
 		autoNextPlist: function (set,video) {
 			if (typeof set !== 'undefined' && video !== null) {
 				try{
-					if (isBangumi('.bilibili-player-electric-panel') === null || isBangumi('.bilibili-player-bangumipay-panel')  === null) { return; }
-					if (isBangumi('.bilibili-player-video-btn-next > i') === null) { return; }
-
 					var nextPlist = function(){
 						if (isBangumi('.bilibili-player-video-btn-repeat > i').getAttribute("data-text") === "关闭洗脑循环") { return; }
 						var controlBtn = isBangumi('.bilibili-player-video-btn-next > i');
@@ -272,43 +269,52 @@
 							doClick(controlBtn);
 						}
 					};
-
-					video.addEventListener('ended',function () {
-						nextPlist();
-					}, false);
-
 					var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
-					if (matchURL.isVideoAV() ) {
-						var observer = new MutationObserver(function (records) {
-							records.map(function (record) {
-								var targetNode = record.target.getAttribute("class");
-								if (targetNode.search("video-state-pause") !== -1) {
-									var controlBtn = isBangumi('.bilibili-player-electric-panel');
-									if (controlBtn !== null) {
-										nextPlist();
+					if (matchURL.isVideoAV()) {
+						if(isBangumi('.bilibili-player-electric-panel') === null){
+							video.addEventListener('ended',function () {
+								nextPlist();
+							}, false);
+						} else {
+							var observer = new MutationObserver(function (records) {
+								records.map(function (record) {
+									var targetNode = record.target.getAttribute("class");
+									if (targetNode.search("video-state-pause") !== -1) {
+										var controlBtn = isBangumi('.bilibili-player-electric-panel');
+										if (controlBtn !== null) {
+											nextPlist();
+											observer.disconnect();
+										}
 									}
-								}
+								});
 							});
-						});
-						observer.observe(document.querySelector('#bofqi .bilibili-player-area'), {
-							attributes: true,
-							attributeFilter:['class'],
-							childList: true
-						});
+							observer.observe(document.querySelector('#bofqi .bilibili-player-area'), {
+								attributes: true,
+								attributeFilter:['class'],
+								childList: true
+							});
+						}
 					} else if (matchURL.isOldBangumi() || matchURL.isNewBangumi()) {
-						var observer = new MutationObserver(function (records) {
-							records.map(function (record) {
-								var targetNode = record.target.getAttribute("style");
-								if (targetNode.search("display: block;") !== -1) {
-									nextPlist();
-								}
+						if(isBangumi('.bilibili-player-bangumipay-panel') === null){
+							video.addEventListener('ended',function () {
+								nextPlist();
+							}, false);
+						} else {
+							var observer = new MutationObserver(function (records) {
+								records.map(function (record) {
+									var targetNode = record.target.getAttribute("style");
+									if (targetNode.search("display: block;") !== -1) {
+										nextPlist();
+										observer.disconnect();
+									}
+								});
 							});
-						});
-						observer.observe(document.querySelector('#bofqi .bilibili-player-bangumipay-panel'), {
-							attributes: true,
-							attributeFilter:['style'],
-							childList: true
-						});
+							observer.observe(document.querySelector('#bofqi .bilibili-player-bangumipay-panel'), {
+								attributes: true,
+								attributeFilter:['style'],
+								childList: true
+							});
+						}
 					}
 				} catch (e) {console.log('autoNextPlist：'+e);}
 			}
@@ -1648,7 +1654,7 @@
 									if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
 										adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 									} else if (setting.autoNextPlist === true) {
-										adjustPlayer.autoNextPlist(setting.autoNextPlist,video);
+										window.setTimeout(function() {adjustPlayer.autoNextPlist(setting.autoNextPlist,video);}, 1000);
 									} else {
 										adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 									}
@@ -1790,7 +1796,7 @@
 								if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
 									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 								} else if (setting.autoNextPlist === true) {
-									adjustPlayer.autoNextPlist(setting.autoNextPlist,video);
+									window.setTimeout(function() {adjustPlayer.autoNextPlist(setting.autoNextPlist,video);}, 1000);
 								} else {
 									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 								}
