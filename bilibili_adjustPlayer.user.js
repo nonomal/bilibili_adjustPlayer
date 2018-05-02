@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.31
+// @version     1.32
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1640,7 +1640,6 @@
 										adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 										adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
 										adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-										adjustPlayer.fixMiniPlayer();
 									}
 
 									//初始化“迷你播放器尺寸”的默认值
@@ -1672,6 +1671,7 @@
 									adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
 									adjustPlayer.shortcuts(setting.shortcuts);
 
+									adjustPlayer.fixMiniPlayer();
 									reloadPList.init();
 									console.log('adjustPlayer:\nhtml5Player init success');
 								}
@@ -1680,6 +1680,7 @@
 									console.log('adjustPlayer:\nhtml5Player init error\n' + e);
 								}
 								finally {
+									reloadPList.getScreenMode();
 									clearInterval(timer);
 								}
 							}
@@ -1756,6 +1757,7 @@
 				} else if (player === "html5Player") {
 					var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
 					var video = isBangumi('.bilibili-player-video video');
+					var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
 					if (video !== null && readyState !== null ) {
 						if (readyState.search("display: none;") !== -1) {
 							try {
@@ -1765,7 +1767,7 @@
 								} else {
 									adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,setting.doubleClickFullScreenDelayed);
 								}
-								//“半自动全屏”提示，“半自动全屏”最优先开启
+								//“半自动全屏”提示
 								var autoFullScreen = function(){
 									var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
 									if (tipsAutoFullScreen) {
@@ -1773,19 +1775,23 @@
 									}
 									adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
 								};
-								if (setting.autoWebFullScreen === true && setting.autoFullScreen === true) {
-									autoFullScreen();
-								} else if (setting.autoWebFullScreen === true) {
-									adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
-								} else if (setting.autoFullScreen === true) {
-									autoFullScreen();
-								} else {
-									//开启“网页全屏”，“半自动全屏”后，不加载的功能
+
+								if(screenMode === 'widescreen') {
+									adjustPlayer.autoWide(true,setting.autoWideFullscreen);
 									adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-									adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
-									adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-									adjustPlayer.fixMiniPlayer();
+								} else if(screenMode === 'webfullscreen') {
+									adjustPlayer.autoWebFullScreen(true);
+								} else if(screenMode === 'fullscreen') {
+									var fullScreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+									if(typeof fullScreen === 'undefined') {
+										autoFullScreen();
+									}
+								} else if(screenMode === 'normal') {
+									adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 								}
+
+								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
+
 								//初始化“迷你播放器尺寸”的默认值
 								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
 									adjustPlayer.resizeMiniPlayer(true,320);
@@ -1811,6 +1817,8 @@
 								window.setTimeout(function() {adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);}, 200);
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
 								adjustPlayer.autoPlay(setting.autoPlay,video);
+
+								adjustPlayer.fixMiniPlayer();
 								reloadPList.init();
 								console.log('adjustPlayer:\nhtml5Player reload success');
 							}
@@ -1819,6 +1827,7 @@
 								console.log('adjustPlayer:\nhtml5Player reload error\n' + e);
 							}
 							finally {
+								reloadPList.getScreenMode();
 								clearInterval(timer);
 							}
 						}
@@ -1872,6 +1881,21 @@
 				console.log("reloadPList: Can't get CurrentPListId");
 			}
 		},
+		getScreenMode: function(){
+			var mode;
+			var player = isBangumi('#bilibiliPlayer').getAttribute("class");
+			if (player !== null) {
+				var playerMode = player.replace(/.+mode-/g,'');
+				if (playerMode !== null) {
+					mode = playerMode;
+				}
+			}
+			if(mode === 'bilibili-player relative' || mode === 'bilibili-player'){
+				mode = 'normal';
+			}
+			//console.log(mode);
+			sessionStorage.setItem("adjustPlayer_screenMode", mode);
+		},
 		init: function(){
 			var pListId = reloadPList.getPListId(location.href);
 			reloadPList.getCurrentPListId(pListId);
@@ -1902,6 +1926,8 @@
 											adjustPlayer.reload(value);
 										});
 									}
+								} else {
+									reloadPList.getScreenMode();
 								}
 							} else {
 								return;
