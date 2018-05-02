@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.32
+// @version     1.33
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1623,11 +1623,13 @@
 
 									//“半自动全屏”提示，“半自动全屏”最优先开启
 									var autoFullScreen = function(){
-										var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
-										if (tipsAutoFullScreen) {
-											configWindow.tipsAutoFullScreen();
+										if(setting.autoFullScreen === true) {
+											var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
+											if (tipsAutoFullScreen) {
+												configWindow.tipsAutoFullScreen();
+											}
+											adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
 										}
-										adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
 									};
 									if (setting.autoWebFullScreen === true && setting.autoFullScreen === true) {
 										autoFullScreen();
@@ -1769,11 +1771,13 @@
 								}
 								//“半自动全屏”提示
 								var autoFullScreen = function(){
-									var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
-									if (tipsAutoFullScreen) {
-										configWindow.tipsAutoFullScreen();
+									if(setting.autoFullScreen === true) {
+										var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
+										if (tipsAutoFullScreen) {
+											configWindow.tipsAutoFullScreen();
+										}
+										adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
 									}
-									adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
 								};
 
 								if(screenMode === 'widescreen') {
@@ -1890,7 +1894,7 @@
 					mode = playerMode;
 				}
 			}
-			if(mode === 'bilibili-player relative' || mode === 'bilibili-player'){
+			if(mode.search("bilibili-player") !== -1) {
 				mode = 'normal';
 			}
 			//console.log(mode);
