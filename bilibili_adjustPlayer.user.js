@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.33
+// @version     1.34
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1295,21 +1295,22 @@
 					if (controlBtn === null) {
 						var scrollToY = (window.pageYOffset || document.documentElement.scrollTop) - (document.documentElement.clientTop || 0);
 						document.body.setAttribute("adjustPlayerScrollToY",scrollToY);
-						if (typeof GM_getValue === 'function') {
-							var setting = config.read();
+
+						var focus = function(setting) {
 							var autoFocusOffsetType = setting.autoFocusOffsetType;
 							var autoFocusOffsetValue= setting.autoFocusOffsetValue;
 							var autoFocusPosition = setting.autoFocusPosition;
 							adjustPlayer.autoFocus(true,autoFocusOffsetType,autoFocusOffsetValue,autoFocusPosition,true);
 							shortcut.shortcutsTips("定位","到播放器顶端");
+						};
+
+						if (typeof GM_getValue === 'function') {
+							var setting = config.read();
+							focus(setting);
 						} else {
 							var setting = config.read();
 							setting.then(function(value){
-								var autoFocusOffsetType = value.autoFocusOffsetType;
-								var autoFocusOffsetValue= value.autoFocusOffsetValue;
-								var autoFocusPosition = value.autoFocusPosition;
-								adjustPlayer.autoFocus(true,autoFocusOffsetType,autoFocusOffsetValue,autoFocusPosition,true);
-								shortcut.shortcutsTips("定位","到播放器顶端");
+								focus(value);
 							});
 						}
 					} else {
@@ -1319,6 +1320,13 @@
 						shortcut.shortcutsTips("定位","回到之前位置");
 						document.body.removeAttribute("adjustPlayerScrollToY");
 					}
+				},
+				moveToPlayerFocus : function () {
+					var videoFocus = isBangumi('.bilibili-player-video-control');
+					if(videoFocus !== null){
+						doClick(videoFocus);
+					}
+					shortcut.shortcutsTips("移动","到播放器焦点");
 				},
 				focusDanmakuInput : function (e) {
 					var controlBtn = isBangumi("input.bilibili-player-video-danmaku-input");
@@ -1445,6 +1453,9 @@
 							case "focusPlayer":
 								shortcut.focusPlayer();
 								break;
+							case "moveToPlayerFocus":
+								shortcut.moveToPlayerFocus();
+								break;
 							case "focusDanmakuInput":
 								shortcut.focusDanmakuInput(event);
 								break;
@@ -1511,6 +1522,20 @@
 								var focused = document.activeElement;
 								if (focused.nodeName === "IFRAME") {
 									window.top.focus();
+								}
+
+								if(set.shortcutsVolumeSeekingGlobal === true) {
+									//arrowKeys
+									if (event.keyCode === 37 || event.keyCode === 38 || event.keyCode === 39 || event.keyCode === 40) {
+										//event.stopPropagation();
+										var videoFocus = function(){
+											var videoControl = isBangumi('.bilibili-player-video-control');
+											if(videoControl !== null){
+												doClick(videoControl);
+											}
+										};
+										videoFocus();
+									}
 								}
 
 								if (event.shiftKey) {
@@ -2211,6 +2236,7 @@
             					<input name="shortcutsSwitch" type="checkbox" list="shortcuts" action="childElementDisabledEvent" disabledChildElement="div,shortcutsItem" >启用快捷键功能<span tooltip="使用帮助：&#10;1：快捷键的总开关，开启后“快捷键功能”才会生效" class="tipsButton">[?]</span>
             				</label>
             				<div class="shortcutsItem">
+            					<label class="h5"><input name="shortcutsVolumeSeekingGlobal" type="checkbox" list="shortcuts" >修改音量/快进退为全局<span tooltip="使用帮助：&#10;1：修改默认的快捷键行为，不用把当前焦点定位到播放器上也能生效。" class="tipsButton">[?]</span></label>
             					<label class="h5">
             						<input name="playPause" type="checkbox" list="shortcuts">播放/暂停视频 <span class="tipsButton" action="shortcuts" typeName="playPause">[设置]</span>
             						<input type="text" name="playPauseKeyName" readOnly="true" list="shortcuts">
@@ -2262,6 +2288,12 @@
 									<span class="tipsButton" action="shortcuts" typeName="focusDanmakuInput">[设置]</span>
             						<input type="text" name="focusDanmakuInputKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusDanmakuInputKeyCode" list="shortcuts" KeyCode="true">
+            					</label>
+								<label class="h5">
+            						<input name="moveToPlayerFocus" type="checkbox" list="shortcuts">焦点移到播放器
+									<span class="tipsButton" action="shortcuts" typeName="moveToPlayerFocus">[设置]</span>
+            						<input type="text" name="moveToPlayerFocusKeyName" readOnly="true" list="shortcuts">
+            						<input type="hidden" name="moveToPlayerFocusKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
             						<input name="addVideoSpeed" type="checkbox" list="shortcuts">增加播放速度 <span class="tipsButton" action="shortcuts" typeName="addVideoSpeed">[设置]</span>
@@ -2549,9 +2581,9 @@
 			var mainWindow = document.querySelector('#adjust-player #main');
 			var mainWindowHeight = mainWindow.offsetHeight;
 			mainWindow.style = 'margin-top:-' + (mainWindowHeight / 2).toFixed(0) + 'px;';
-			var windowHeight = window.outerHeight;
-			if (windowHeight < (mainWindowHeight + 280)) {
-				wrapper.style = "max-height:" + (windowHeight - 280) + 'px; padding-right:10px;';
+			var windowHeight = window.innerHeight;
+			if (windowHeight < (mainWindowHeight + 200)) {
+				wrapper.style = "max-height:" + (windowHeight - 200) + 'px; padding-right:10px;';
 				mainWindow.style = 'margin-top:-' + (mainWindow.offsetHeight /2) + 'px;';
 			}
 		},
