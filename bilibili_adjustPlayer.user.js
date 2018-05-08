@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.35
+// @version     1.36
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -529,6 +529,16 @@
 									var multiPageWidth = document.querySelector('#v_multipage').offsetWidth;
 									if(parseInt(multiPageWidth) >= parseInt(width)){
 										bgrayBtnWrap.setAttribute("style","margin-left:calc("+ multiPageWidth +"px / 2) !important;");
+									}
+								}
+							}
+							//修复播放器尺寸调整过小，稍后观看页面工具条没有居中
+							if (matchURL.isWatchlater()) {
+								var toolbar = document.querySelector('.video-box-module .video-toolbar-module');
+								var toolbarWidth = toolbar.offsetWidth;
+								if(toolbar !== null){
+									if(parseInt(toolbarWidth) >= parseInt(width)){
+										toolbar.setAttribute("style","margin-left:calc(50% - calc("+ toolbarWidth +"px /2)) !important;");
 									}
 								}
 							}
