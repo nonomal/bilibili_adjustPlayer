@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.34
+// @version     1.35
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -644,7 +644,7 @@
 				var ratio = 16 / 9;
 				var height = Number(width / ratio).toFixed();
 				var css = [
-					'#bofqi.mini-player:before, #bofqi.float, #bofqi.float:before, #bofqi.float .move + .player, .player-wrapper .mini-player { width: '+ width +'px !important; height: '+ height +'px !important; }',
+					'#viewlater-app .bilibili-player-video-wrap.mini-player, #bofqi.mini-player:before, #bofqi.float, #bofqi.float:before, #bofqi.float .move + .player, .player-wrapper .mini-player { width: '+ width +'px !important; height: '+ height +'px !important; }',
 					'#bofqi.mini-player, #bofqi.newfloat .move, #bofqi.float .move { width: '+ width +'px !important; }',
 					'#bofqi.mini-player:before, #bofqi.float:before, #bofqi.newfloat:before, .player-wrapper .mini-player:before { box-shadow: none !important; }',
 					'#bofqi.mini-player > .player, #bofqi.newfloat, #bofqi.newfloat:before, #bofqi.newfloat .move + .player, .player-wrapper .mini-player > #bofqi .player { width: '+ width +'px !important; height: '+ height +'px !important; }',
@@ -774,6 +774,9 @@
 		fixMiniPlayer: function() {
 			//重写迷你播放器滚动事件
 			try {
+				if(matchURL.isWatchlater()) {
+					return;
+				}
 				if (localStorage.getItem('adjustPlayer_b_miniplayer') === null) localStorage.setItem('adjustPlayer_b_miniplayer', localStorage.getItem('b_miniplayer'));
 				if (localStorage.getItem('adjustPlayer_b_miniplayer') !== '1' && localStorage.getItem('adjustPlayer_b_miniplayer') !== '0') localStorage.setItem('adjustPlayer_b_miniplayer', '1');
 				var miniplayer = function(type, miniSwitch) {
@@ -784,9 +787,9 @@
 						if (isMiniplayer === "0") miniSwitch.click();
 					}
 				};
-				var NavRight = matchURL.isNewBangumi() ? document.querySelector('.bangumi-nav-right') : document.querySelector('.fixed-nav-m');
-				if (NavRight === null) return;
-				var miniSwitch = matchURL.isNewBangumi() ? NavRight.querySelectorAll('.bangumi-nav-right > .nav-mini-switch')[0] : NavRight.querySelectorAll('.fixed-nav-m .mini')[0];
+				var navRight = matchURL.isNewBangumi() ? document.querySelector('.bangumi-nav-right') : document.querySelector('.fixed-nav-m');
+				if (navRight === null) return;
+				var miniSwitch = matchURL.isNewBangumi() ? navRight.querySelectorAll('.bangumi-nav-right > .nav-mini-switch')[0] : navRight.querySelectorAll('.fixed-nav-m .mini')[0];
 				var setMiniPlayer = function(scroll_pos) {
 					var adjustPlayerMiniplayer = localStorage.getItem('adjustPlayer_b_miniplayer');
 					//console.log(adjustPlayerMiniplayer);
@@ -818,7 +821,7 @@
 				};
 				setMiniSwitchClone();
 				miniSwitch.setAttribute('style', 'display:none');
-				NavRight.insertBefore(miniSwitchClone, miniSwitch);
+				navRight.insertBefore(miniSwitchClone, miniSwitch);
 				if (matchURL.isNewBangumi()) {
 					var last_known_scroll_position = 0;
 					var ticking = false;
