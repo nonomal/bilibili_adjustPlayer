@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.37
+// @version     1.38
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -656,7 +656,7 @@
 						'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ width +'px !important; height: calc('+ width +'px / calc(16 / 9)) !important; }',
 						'.bangumi-player.mini-player > .bgray-btn-wrap , .bangumi-player.mini-player:before, #bofqi.mini-player:before { display:none !important; }',
 						'#adjust-player-miniplayer-resizable { width: '+ width +'px ; height: calc('+ width +'px / calc(16 / 9)) !important; position: absolute; top: 30px; z-index: 0; overflow: hidden; resize: both; }',
-						'#adjust-player-miniplayer-resizable.show { display:block; }',
+						'#adjust-player-miniplayer-resizable.show,#adjust-player-miniplayer-resizable.show .drag { display:block !important; }',
 						'.newfloat #adjust-player-miniplayer-resizable, .mini-player #adjust-player-miniplayer-resizable { z-index: 10000; }'
 					];
 					var node = document.createElement('style');
@@ -674,7 +674,7 @@
 					//console.log("resizable");
 					var resizableElement = document.createElement('div');
 					resizableElement.id = "adjust-player-miniplayer-resizable";
-					resizableElement.innerHTML = '<div style="width: 10px; height: 10px; position: absolute; bottom: 0px; right: 0; background: #fff; pointer-events: none;">↘</div>';
+					resizableElement.innerHTML = '<div class="drag" style="width: 10px; height: 10px; position: absolute; bottom: 0px; right: 0; background: #fff; pointer-events: none;display:none;">↘</div>';
 
 					var miniPlayerDiv = document.querySelector('.newfloat') || document.querySelector('.mini-player');
 					if (miniPlayerDiv !== null ) {
@@ -698,7 +698,7 @@
 								'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ resizableElementWidth +'px !important; height: '+ resizableElementHeight +'px !important; }',
 								'.bangumi-player.mini-player > .bgray-btn-wrap , .bangumi-player.mini-player:before, #bofqi.mini-player:before { display:none !important; }',
 								'#adjust-player-miniplayer-resizable { position: absolute; top: 30px; z-index: 1; overflow: hidden; resize: both; }',
-								'#adjust-player-miniplayer-resizable.show { display:block!important; }',
+								'#adjust-player-miniplayer-resizable.show,#adjust-player-miniplayer-resizable.show .drag { display:block !important; }',
 								'.newfloat #adjust-player-miniplayer-resizable, .mini-player #adjust-player-miniplayer-resizable { z-index: 10000; }',
 							];
 							var node = document.createElement('style');
@@ -741,6 +741,9 @@
 											var miniPlayerHeight = miniPlayerDiv.clientHeight;
 											resizableElement.setAttribute('style', 'width:' + miniPlayerWidth + 'px;height:' + miniPlayerHeight + 'px;');
 											stop();
+										} else {
+											stop();
+											scrollResizeHideShow('hide');
 										}
 									}, 3000);
 								} else {
@@ -751,6 +754,43 @@
 						} , false);
 					}
 
+				};
+
+				var scrollResizeHideShow = function(type) {
+					var scrollResizeTimer;
+					if(type === "hide") {
+						var player = document.querySelector("#bilibiliPlayer");
+						player.classList.remove("mode-miniscreen");
+						var adjustMiniPlayerSizeCSS = document.querySelector("#adjustMiniPlayerSize");
+						if(adjustMiniPlayerSizeCSS !== null) {
+							adjustMiniPlayerSizeCSS.remove();
+						}
+						var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
+						if(adjustMiniPlayerSizeResizable !== null) {
+							adjustMiniPlayerSizeResizable.classList.remove("show");
+							adjustMiniPlayerSizeResizable.setAttribute('style', '');
+						}
+						scrollResizeTimer = window.setTimeout(function() {
+							clearTimeout(this.scrollResizeTimer);
+							var evt = document.createEvent('Event');
+							evt.initEvent('resize', true, true);
+							isBangumi('.bilibili-player-video video').dispatchEvent(evt);
+						}, 200);
+					} else if (type === "show") {
+						var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
+						if(adjustMiniPlayerSizeResizable !== null) {
+							var miniPlayer = document.querySelector("#bofqi.mini-player");
+							if (miniPlayer !== null) {
+								adjustMiniPlayerSizeResizable.classList.add("show");
+							}
+						}
+						scrollResizeTimer = window.setTimeout(function() {
+							clearTimeout(this.scrollResizeTimer);
+							var evt = document.createEvent('Event');
+							evt.initEvent('resize', true, true);
+							isBangumi('.bilibili-player-video video').dispatchEvent(evt);
+						}, 200);
+					}
 				};
 
 				var scrollResizeMiniPlayerEvent = function() {
@@ -773,7 +813,6 @@
 					var last_known_scroll_position = 0;
 					var ticking = false;
 					var mainInner;
-					var scrollResizeTimer;
 					if (matchURL.isVideoAV()) {
 						mainInner = document.querySelector('.player-wrapper + .main-inner');
 						if(mainInner === null){
@@ -794,45 +833,13 @@
 								window.requestAnimationFrame(function() {
 									//console.log(mainInnerPos + '\n' + last_known_scroll_position);
 									if (last_known_scroll_position >= mainInnerPos) {
-										//console.log("show");
 										var adjustMiniPlayerSizeCSS = document.querySelector("#adjustMiniPlayerSize");
 										if(adjustMiniPlayerSizeCSS === null) {
 											initResize();
 										}
-										var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
-										if(adjustMiniPlayerSizeResizable !== null) {
-											var miniPlayer = document.querySelector("#bofqi.mini-player");
-											if (miniPlayer !== null) {
-												adjustMiniPlayerSizeResizable.classList.add("show");
-											}
-										}
-										scrollResizeTimer = window.setTimeout(function() {
-											clearTimeout(this.scrollResizeTimer);
-											var evt = document.createEvent('Event');
-											evt.initEvent('resize', true, true);
-											isBangumi('.bilibili-player-video video').dispatchEvent(evt);
-										}, 200);
-
+										scrollResizeHideShow('show');
 									} else {
-										//console.log("hide");
-										var player = document.querySelector("#bilibiliPlayer");
-										player.classList.remove("mode-miniscreen");
-
-										var adjustMiniPlayerSizeCSS = document.querySelector("#adjustMiniPlayerSize");
-										if(adjustMiniPlayerSizeCSS !== null) {
-											adjustMiniPlayerSizeCSS.remove();
-										}
-										var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
-										if(adjustMiniPlayerSizeResizable !== null) {
-											adjustMiniPlayerSizeResizable.classList.remove("show");
-											adjustMiniPlayerSizeResizable.setAttribute('style', '');
-										}
-										scrollResizeTimer = window.setTimeout(function() {
-											clearTimeout(this.scrollResizeTimer);
-											var evt = document.createEvent('Event');
-											evt.initEvent('resize', true, true);
-											isBangumi('.bilibili-player-video video').dispatchEvent(evt);
-										}, 200);
+										scrollResizeHideShow('hide');
 									}
 									ticking = false;
 								});
