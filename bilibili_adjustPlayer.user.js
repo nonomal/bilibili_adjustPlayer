@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.40
+// @version     1.41
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -623,9 +623,15 @@
 								if (!ticking) {
 									window.requestAnimationFrame(function() {
 										if (last_known_scroll_position >= position) {
-											gotop.style.visibility = "visible";
+											if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === false) {
+												window.isGotopVisibility = true;
+												gotop.style.visibility = "visible";
+											}
 										} else {
-											gotop.style.visibility = "hidden";
+											if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === true) {
+												window.isGotopVisibility = false;
+												gotop.style.visibility = "hidden";
+											}
 										}
 										ticking = false;
 									});
@@ -754,7 +760,7 @@
 											stop();
 											scrollResizeHideShow('hide');
 										}
-									}, 1000);
+									}, 1500);
 								} else {
 									var video = isBangumi('.bilibili-player-video');
 									doClick(video);
@@ -806,7 +812,8 @@
 									resizable();
 								}
 								resize();
-							}, 200);
+								scrollResizeHideShow('show');
+							}, 800);
 						}
 					};
 					//event
@@ -814,8 +821,8 @@
 					var ticking = false;
 					var position = getScrollEventElement();
 					if (typeof position !== 'undefined' && position !== null ) {
+						var pos = position.offsetTop;
 						var scrollEvent = function (e) {
-							var pos = position.offsetTop
 							last_known_scroll_position = window.scrollY;
 							if (!ticking) {
 								window.requestAnimationFrame(function() {
@@ -825,10 +832,11 @@
 											initResize();
 											window.isInitResize = true;
 										}
-										scrollResizeHideShow('show');
 									} else {
-										scrollResizeHideShow('hide');
-										window.isInitResize = false;
+										if(typeof window.isInitResize === 'undefined' || window.isInitResize === true) {
+											scrollResizeHideShow('hide');
+											window.isInitResize = false;
+										}
 									}
 									ticking = false;
 								});
@@ -846,14 +854,7 @@
 			try {
 				if (localStorage.getItem('adjustPlayer_b_miniplayer') === null) localStorage.setItem('adjustPlayer_b_miniplayer', localStorage.getItem('b_miniplayer'));
 				if (localStorage.getItem('adjustPlayer_b_miniplayer') !== '1' && localStorage.getItem('adjustPlayer_b_miniplayer') !== '0') localStorage.setItem('adjustPlayer_b_miniplayer', '1');
-				var miniplayer = function(type, miniSwitch) {
-					var isMiniplayer = localStorage.getItem('b_miniplayer');
-					if (type === "off") {
-						if (isMiniplayer === "1") miniSwitch.click();
-					} else if (type === "on") {
-						if (isMiniplayer === "0") miniSwitch.click();
-					}
-				};
+
 				var navRight = matchURL.isNewBangumi() ? document.querySelector('.bangumi-nav-right') : document.querySelector('.fixed-nav-m');
 				if (navRight === null) {
 					return;
@@ -864,13 +865,28 @@
 				} else {
 					miniSwitch = miniSwitch[0];
 				}
+
+				var miniplayer = function(type, miniSwitch) {
+					var isMiniplayer = localStorage.getItem('b_miniplayer');
+					if (type === "off") {
+						if (isMiniplayer === "1") miniSwitch.click();
+					} else if (type === "on") {
+						if (isMiniplayer === "0") miniSwitch.click();
+					}
+				};
 				var setMiniPlayer = function(scroll_pos) {
 					var adjustPlayerMiniplayer = localStorage.getItem('adjustPlayer_b_miniplayer');
 					//console.log(adjustPlayerMiniplayer);
 					if (adjustPlayerMiniplayer === "1") {
-						if (!matchURL.isNewBangumi() || scroll_pos >= document.querySelector('#bangumi_detail').offsetTop) miniplayer("on", miniSwitch);
-						else miniplayer("off", miniSwitch);
-					} else if (adjustPlayerMiniplayer === "0") miniplayer("off", miniSwitch);
+						if (!matchURL.isNewBangumi() || scroll_pos >= document.querySelector('#bangumi_detail').offsetTop) {
+							miniplayer("on", miniSwitch);
+						}
+						else {
+							miniplayer("off", miniSwitch);
+						}
+					} else if (adjustPlayerMiniplayer === "0") {
+						miniplayer("off", miniSwitch);
+					}
 				};
 				var miniSwitchClone = miniSwitch.cloneNode(true);
 				var setMiniSwitchClone = function() {
@@ -899,11 +915,21 @@
 				if (matchURL.isNewBangumi()) {
 					var last_known_scroll_position = 0;
 					var ticking = false;
+					var bangumiDetailPosition = document.querySelector('#bangumi_detail').offsetTop;
 					window.addEventListener('scroll', function(e) {
 						last_known_scroll_position = window.scrollY;
 						if (!ticking) {
 							window.requestAnimationFrame(function() {
-								setMiniPlayer(last_known_scroll_position);
+								if (last_known_scroll_position >= bangumiDetailPosition) {
+									if(typeof window.isSetMiniPlayer === 'undefined' || window.isSetMiniPlayer === false) {
+										setMiniPlayer(last_known_scroll_position);
+										window.isInitResize = true;
+									}
+								} else {
+									if(typeof window.isSetMiniPlayer === 'undefined' || window.isSetMiniPlayer === true) {
+										window.isInitResize = false;
+									}
+								}
 								ticking = false;
 							});
 						}
@@ -1699,7 +1725,7 @@
 									adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize);
 								}
 								reloadPList.init();
-							}, 500);
+							}, 1000);
 							console.log('adjustPlayer:\nflashPlayer init success');
 						} catch (e) {
 							clearInterval(timer);
@@ -1743,15 +1769,17 @@
 										//开启“网页全屏”，“半自动全屏”后，不加载的功能
 										adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 										adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
-										adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
+										window.setTimeout(function() {adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);}, 1000);
 									}
 
 									//初始化“迷你播放器尺寸”的默认值
-									if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
-										adjustPlayer.resizeMiniPlayer(true,320);
-									} else {
-										adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
-									}
+									window.setTimeout(function() {
+										if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
+											adjustPlayer.resizeMiniPlayer(true,320);
+										} else {
+											adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
+										}
+									}, 1000);
 
 									//开启“循环播放”后，不加载“自动播放下一个视频”
 									if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
@@ -1775,7 +1803,7 @@
 									adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
 									adjustPlayer.shortcuts(setting.shortcuts);
 
-									adjustPlayer.fixMiniPlayer();
+									window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 									reloadPList.init();
 									console.log('adjustPlayer:\nhtml5Player init success');
 								}
@@ -1850,7 +1878,7 @@
 							adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
 							adjustPlayer.fixMiniPlayer();
 							reloadPList.init();
-						}, 500);
+						}, 1000);
 						console.log('adjustPlayer:\nflashPlayer reload success');
 					} catch (e) {
 						clearInterval(timer);
@@ -1896,14 +1924,17 @@
 									adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 								}
 
-								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
+								window.setTimeout(function() {adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);}, 1000);
 
 								//初始化“迷你播放器尺寸”的默认值
-								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
-									adjustPlayer.resizeMiniPlayer(true,320);
-								} else {
-									adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
-								}
+								window.setTimeout(function() {
+									if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
+										adjustPlayer.resizeMiniPlayer(true,320);
+									} else {
+										adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
+									}
+								}, 1000);
+
 								//开启“循环播放”后，不加载“自动播放下一个视频”
 								if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
 									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
@@ -1924,7 +1955,7 @@
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
 								adjustPlayer.autoPlay(setting.autoPlay,video);
 
-								adjustPlayer.fixMiniPlayer();
+								window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 								reloadPList.init();
 								console.log('adjustPlayer:\nhtml5Player reload success');
 							}
