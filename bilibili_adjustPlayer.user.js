@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.39
+// @version     1.39.1
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -740,7 +740,7 @@
 										var resizableElementStyle = resizableElement.getAttribute('class');
 										if(resizableElementStyle === 'show'){
 											var fixUndersize = function(){
-												clearTimeout(this.loopTimer);
+												clearTimeout(loopTimer);
 												resizableElement.setAttribute('style', 'width:' + 320 + 'px;height:' + 180 + 'px;');
 												start();
 												loopTimer = window.setTimeout(function() {
