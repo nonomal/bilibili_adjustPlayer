@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.44
+// @version     1.45
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -676,7 +676,7 @@
 					resizableElement.id = "adjust-player-miniplayer-resizable";
 					resizableElement.innerHTML = '<div class="drag" style="width: 10px; height: 10px; position: absolute; bottom: 0px; right: 0; background: #fff; pointer-events: none;display:none;">↘</div>';
 
-					var miniPlayerDiv = document.querySelector('.newfloat') || document.querySelector('.mini-player');
+					var miniPlayerDiv = document.querySelector('.mini-player');
 					if (miniPlayerDiv !== null ) {
 						var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
 						if(adjustMiniPlayerSizeResizable === null) {
@@ -744,7 +744,7 @@
 										if(resizableElementStyle === 'show'){
 											var fixUndersize = function(){
 												clearTimeout(loopTimer);
-												resizableElement.setAttribute('style', 'width:' + 320 + 'px;height:' + 180 + 'px;');
+												resizableElement.setAttribute('style', 'width:320px;height:180px;');
 												start();
 												loopTimer = window.setTimeout(function() {
 													stop();
@@ -767,20 +767,20 @@
 											}
 										} else {
 											stop();
-											scrollResizeHideShow('hide');
+											miniPlayerHideShow('hide');
 										}
 									}, 3000);
 								} else {
-									var video = isBangumi('.bilibili-player-video');
-									doClick(video);
+									doClick(document.querySelector('.bilibili-player-video'));
 								}
 							}
 						} , false);
 					}
 				};
 
-				var scrollResizeHideShow = function(type) {
+				var miniPlayerHideShow = function(type) {
 					var scrollResizeTimer;
+					var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
 					if(type === "hide") {
 						var player = document.querySelector("#bilibiliPlayer");
 						player.classList.remove("mode-miniscreen");
@@ -788,15 +788,13 @@
 						if(adjustMiniPlayerSizeCSS !== null) {
 							adjustMiniPlayerSizeCSS.remove();
 						}
-						var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
 						if(adjustMiniPlayerSizeResizable !== null) {
 							adjustMiniPlayerSizeResizable.classList.remove("show");
 							adjustMiniPlayerSizeResizable.setAttribute('style', '');
 						}
 					} else if (type === "show") {
-						var adjustMiniPlayerSizeResizable = document.querySelector("#adjust-player-miniplayer-resizable");
 						if(adjustMiniPlayerSizeResizable !== null) {
-							var miniPlayer = document.querySelector("#bofqi.mini-player") || document.querySelector(".bangumi-player.mini-player") || document.querySelector("#viewlater-app .bilibili-player-video-wrap.mini-player");
+							var miniPlayer = document.querySelector('.mini-player');
 							if (miniPlayer !== null) {
 								adjustMiniPlayerSizeResizable.classList.add("show");
 							}
@@ -810,58 +808,58 @@
 					}, 200);
 				};
 
-				var scrollResizeMiniPlayerEvent = function() {
-					var scrollTimer;
-					var initResize = function(scroll_pos){
-						var adjustMiniPlayerSizeCSS = document.querySelector("#adjustMiniPlayerSize");
-						if(adjustMiniPlayerSizeCSS === null) {
-							scrollTimer = window.setTimeout(function() {
-								clearTimeout(this.scrollTimer);
-								if (window.scrollY >= scroll_pos) {
-									if (typeof isResizable !== 'undefined' && isResizable === 'on') {
-										resizable(true);
-									} else {
-										resize();
-									}
-									scrollResizeHideShow('show');
-									window.isInitResize = true;
+				var miniPlayerHideShowEvent = function() {
+					var initResize = function(isMiniPlayer){
+						if (isMiniPlayer) {
+							if(typeof window.isInitResize === 'undefined' || window.isInitResize === false) {
+								if (typeof isResizable !== 'undefined' && isResizable === 'on') {
+									resizable(isMiniPlayer);
+								} else {
+									resize();
 								}
-							}, 800);
+								miniPlayerHideShow('show');
+								window.isInitResize = true;
+							}
+						} else {
+							if(typeof window.isInitResize === 'undefined' || window.isInitResize === true) {
+								miniPlayerHideShow('hide');
+								window.isInitResize = false;
+							}
 						}
 					};
-					//event
-					var last_known_scroll_position = 0;
-					var ticking = false;
-					var position = getScrollEventElement();
-					if (typeof position !== 'undefined' && position !== null ) {
-						var scrollEvent = function (scroll_pos) {
-							var pos = position.offsetTop;
-							//console.log(pos + '\n' + scroll_pos);
-							if (scroll_pos >= pos) {
-								if(typeof window.isInitResize === 'undefined' || window.isInitResize === false) {
-									initResize(scroll_pos);
-								}
-							} else {
-								if(typeof window.isInitResize === 'undefined' || window.isInitResize === true) {
-									scrollResizeHideShow('hide');
-									window.isInitResize = false;
-								}
-							}
-						};
-						window.addEventListener('scroll', function(e){
-							last_known_scroll_position = window.scrollY;
-							if (!ticking) {
-								window.requestAnimationFrame(function() {
-									scrollEvent(last_known_scroll_position);
-									ticking = false;
-								});
-							}
-							ticking = true;
-						}, false);
-						scrollEvent(window.scrollY);
+
+					var observerPlayerElement = document.querySelector('#bofqi');
+					if (matchURL.isNewBangumi()) {
+						observerPlayerElement = document.querySelector('#bangumi_player .bangumi-player');
+					} else if (matchURL.isWatchlater() === true) {
+						observerPlayerElement = document.querySelector('#bilibiliPlayer .bilibili-player-video-wrap');
 					}
+
+					var isMiniPlayer;
+					if(observerPlayerElement.getAttribute("class").search("mini-player") !== -1) {
+						isMiniPlayer = true;
+					} else {
+						isMiniPlayer = false;
+					}
+					initResize(isMiniPlayer);
+
+					var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+					var observer = new MutationObserver(function (records) {
+						records.map(function(record){
+							if(record.target.getAttribute("class").search("mini-player") !== -1) {
+								isMiniPlayer = true;
+							} else {
+								isMiniPlayer = false;
+							}
+							initResize(isMiniPlayer);
+						});
+					});
+					observer.observe(observerPlayerElement, {
+						attributes: true,
+						attributeFilter: ['class']
+					});
 				};
-				scrollResizeMiniPlayerEvent();
+				miniPlayerHideShowEvent();
 			}
 		},
 		fixMiniPlayer: function() {
@@ -927,24 +925,15 @@
 				setMiniSwitchClone();
 				miniSwitch.setAttribute('style', 'display:none');
 				navRight.insertBefore(miniSwitchClone, miniSwitch);
+
 				if (matchURL.isNewBangumi()) {
 					var last_known_scroll_position = 0;
 					var ticking = false;
-					var bangumiDetailPosition = document.querySelector('#bangumi_detail').offsetTop;
 					window.addEventListener('scroll', function(e) {
 						last_known_scroll_position = window.scrollY;
 						if (!ticking) {
 							window.requestAnimationFrame(function() {
-								if (last_known_scroll_position >= bangumiDetailPosition) {
-									if(typeof window.isSetMiniPlayer === 'undefined' || window.isSetMiniPlayer === false) {
-										setMiniPlayer(last_known_scroll_position);
-										window.isInitResize = true;
-									}
-								} else {
-									if(typeof window.isSetMiniPlayer === 'undefined' || window.isSetMiniPlayer === true) {
-										window.isInitResize = false;
-									}
-								}
+								setMiniPlayer(last_known_scroll_position);
 								ticking = false;
 							});
 						}
