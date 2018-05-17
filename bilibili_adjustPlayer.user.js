@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.42
+// @version     1.43
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -670,7 +670,7 @@
 					document.documentElement.appendChild(node);
 				};
 
-				var resizable = function(){
+				var resizable = function(initResize){
 					//console.log("resizable");
 					var resizableElement = document.createElement('div');
 					resizableElement.id = "adjust-player-miniplayer-resizable";
@@ -688,20 +688,16 @@
 						var requestId;
 						var loopTimer;
 
-						function loop() {
-							requestId = undefined;
-							//resizableEvent start
-							var resizableElementWidth = resizableElement.clientWidth;
-							var resizableElementHeight = resizableElement.clientHeight;
-							//console.log(resizableElementWidth + "\n" + resizableElementHeight);
+						var dragEvent = function(width,height){
 							var css = [
-								'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ resizableElementWidth +'px !important; height: '+ resizableElementHeight +'px !important; }',
+								'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ width +'px !important; height: '+ height +'px !important; }',
 								'.bangumi-player.mini-player > .bgray-btn-wrap , .bangumi-player.mini-player:before, #bofqi.mini-player:before { display:none !important; }',
 								'#viewlater-app .bilibili-player-video-wrap.mini-player .bilibili-player-video-danmaku { height:calc(100% - 30px); top:30px; }',
-								'#adjust-player-miniplayer-resizable { position: absolute; top: 30px; z-index: 1; overflow: hidden; resize: both; min-height:100px; min-width:100px; }',
+								'#adjust-player-miniplayer-resizable { position: absolute; top: 30px; z-index: 1; overflow: hidden; resize: both; min-height:100px; min-width:100px;width: '+ width +'px; height: '+ height +'px; }',
 								'#adjust-player-miniplayer-resizable.show,#adjust-player-miniplayer-resizable.show .drag { display:block !important; }',
 								'.newfloat #adjust-player-miniplayer-resizable, .mini-player #adjust-player-miniplayer-resizable { z-index: 10000; }',
 							];
+							//console.log(resizableElementWidth + "\n" + resizableElementHeight);
 							var node = document.createElement('style');
 							node.type = 'text/css';
 							node.id = 'adjustMiniPlayerSize';
@@ -713,7 +709,15 @@
 							document.documentElement.appendChild(node);
 							var player = document.querySelector("#bilibiliPlayer");
 							player.classList.add("mode-miniscreen");
-							//resizableEvent end
+						};
+
+						if(initResize) {
+							dragEvent(width,Number(width / (16 / 9)).toFixed());
+						}
+
+						function loop() {
+							requestId = undefined;
+							dragEvent(resizableElement.clientWidth,resizableElement.clientHeight);
 							start();
 						}
 						function start() {
@@ -765,7 +769,7 @@
 											stop();
 											scrollResizeHideShow('hide');
 										}
-									}, 1500);
+									}, 3000);
 								} else {
 									var video = isBangumi('.bilibili-player-video');
 									doClick(video);
@@ -815,9 +819,10 @@
 								clearTimeout(this.scrollTimer);
 								if (window.scrollY >= scroll_pos) {
 									if (typeof isResizable !== 'undefined' && isResizable === 'on') {
-										resizable();
+										resizable(true);
+									} else {
+										resize();
 									}
-									resize();
 									scrollResizeHideShow('show');
 									window.isInitResize = true;
 								}
@@ -975,9 +980,9 @@
 
 					var css = [ //Modify the https://userstyles.org/styles/131642/bilibili-html5
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-wrap, #bilibiliPlayer.mode-widescreen .bilibili-player-video-wrap { height: 100% !important; width: 100% !important; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control { display: block; opacity: 0 !important; transition: 0.2s; position: absolute; bottom: 0px; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control { opacity: 0 !important; transition: 0.2s; position: absolute; bottom: 0px; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control:hover { opacity: '+ fixSendbarOpacity() +' !important; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar { display: block; opacity: 0 !important; transition: 0.2s; position: absolute; top: 0px; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar { width: 100% !important; opacity: 0 !important; transition: 0.2s; position: absolute; top: 0px; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar:hover { opacity: '+ fixSendbarOpacity() +' !important; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar .bilibili-player-mode-selection-container, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar .bilibili-player-mode-selection-container { height: 120px; border-radius: 5px; top: 100%; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar .bilibili-player-color-picker-container, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar .bilibili-player-color-picker-container { height: 208px; border-radius: 5px; top: 100%; }',
