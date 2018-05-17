@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.45
+// @version     1.46
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1691,7 +1691,7 @@
 								adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
 								adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-								adjustPlayer.fixMiniPlayer();
+								//adjustPlayer.fixMiniPlayer();
 								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
 									adjustPlayer.resizeMiniPlayer(true,320);
 								} else {
@@ -1774,7 +1774,7 @@
 									adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
 									adjustPlayer.shortcuts(setting.shortcuts);
 
-									window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
+									//window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 									reloadPList.init();
 									console.log('adjustPlayer:\nhtml5Player init success');
 								}
@@ -1847,7 +1847,7 @@
 							adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
 							adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 							adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-							adjustPlayer.fixMiniPlayer();
+							//adjustPlayer.fixMiniPlayer();
 							reloadPList.init();
 						}, 1000);
 						console.log('adjustPlayer:\nflashPlayer reload success');
@@ -1924,7 +1924,7 @@
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
 								adjustPlayer.autoPlay(setting.autoPlay,video);
 
-								window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
+								//window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 								reloadPList.init();
 								console.log('adjustPlayer:\nhtml5Player reload success');
 							}
