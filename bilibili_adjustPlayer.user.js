@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.46
+// @version     1.47
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -488,6 +488,7 @@
 						'#bofqi.wide .player, .wide.moviescontent { width: '+ width +' !important; height: calc('+ width +' / calc('+ ratio +') + 68px) !important; } ',
 						'.player-wrapper .bangumi-player, #__bofqi.bili-wrapper { width: '+ width +' !important; background: none !important; height: auto !important;} ',
 						'#__bofqi.bili-wrapper { min-height: unset !important; } ',
+						'.bangumi-player.fix-Resize-Height { position: static !important; } ',
 						'#bofqi.wide .autohide-controlbar, .wide.autohide-controlbar-movies { width: '+ width +' !important; height: calc('+ width +' / calc('+ ratio +') + 0px) !important; } '
 					];
 					var node = document.createElement('style');
@@ -590,6 +591,34 @@
 								});
 								fixMinHeight(bofqi);
 							}
+							//重写迷你播放器滚动事件
+							var fixMiniPlayerScrollEvent = function(){
+								var last_known_scroll_position = 0;
+								var ticking = false;
+								var bangumiPlayer = document.querySelector('#bangumi_player .bangumi-player');
+								var pos = document.querySelector('#bangumi_detail').offsetTop;
+								window.addEventListener('scroll', function(e) {
+									last_known_scroll_position = window.scrollY;
+									if (!ticking) {
+										window.requestAnimationFrame(function() {
+											var bangumiPlayerStyle = bangumiPlayer.getAttribute('style');
+											if (last_known_scroll_position >= pos) {
+												if(bangumiPlayerStyle === null || bangumiPlayerStyle === '') {
+													bangumiPlayer.setAttribute('class','bangumi-player fix-Resize-Height');
+												} else {
+													bangumiPlayer.setAttribute('class','bangumi-player mini-player');
+												}
+											}
+											else {
+												bangumiPlayer.setAttribute('class','bangumi-player fix-Resize-Height');
+											}
+											ticking = false;
+										});
+									}
+									ticking = true;
+								});
+							};
+							fixMiniPlayerScrollEvent();
 						}
 					};
 					var fixResizeGotop = function(){
@@ -610,41 +639,42 @@
 						} else if (matchURL.isWatchlater()) {
 							gotop = document.querySelector('.fixed-nav-m');
 						}
-
 						if (gotop !== null) {
-							gotop.style.visibility = "hidden";
-							var last_known_scroll_position = 0;
-							var ticking = false;
 							var position = getScrollEventElement();
 							if (typeof position !== 'undefined' && position !== null ) {
-								position = position.offsetTop;
+								var scrollEvent = function(scroll_position){
+									if (scroll_position >= position.offsetTop) {
+										if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === false) {
+											window.isGotopVisibility = true;
+											gotop.style.visibility = "visible";
+										}
+									} else {
+										if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === true) {
+											window.isGotopVisibility = false;
+											gotop.style.visibility = "hidden";
+										}
+									}
+								};
+								var last_known_scroll_position = 0;
+								var ticking = false;
 								window.addEventListener('scroll', function(e) {
 									last_known_scroll_position = window.scrollY;
 									if (!ticking) {
 										window.requestAnimationFrame(function() {
-											if (last_known_scroll_position >= position) {
-												if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === false) {
-													window.isGotopVisibility = true;
-													gotop.style.visibility = "visible";
-												}
-											} else {
-												if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === true) {
-													window.isGotopVisibility = false;
-													gotop.style.visibility = "hidden";
-												}
-											}
+											scrollEvent(last_known_scroll_position);
 											ticking = false;
 										});
 									}
 									ticking = true;
 								});
+								scrollEvent(window.scrollY);
 							}
 						}
-					};
+					}
 					window.setTimeout(function() {
 						fixResizeHeight();
 						fixResizeGotop();
-					}, 1000);
+					}, 200);
 				} catch (e) {console.log('resizePlayer：'+e);}
 			}
 		},
@@ -861,86 +891,6 @@
 				};
 				miniPlayerHideShowEvent();
 			}
-		},
-		fixMiniPlayer: function() {
-			//重写迷你播放器滚动事件
-			try {
-				if (localStorage.getItem('adjustPlayer_b_miniplayer') === null) localStorage.setItem('adjustPlayer_b_miniplayer', localStorage.getItem('b_miniplayer'));
-				if (localStorage.getItem('adjustPlayer_b_miniplayer') !== '1' && localStorage.getItem('adjustPlayer_b_miniplayer') !== '0') localStorage.setItem('adjustPlayer_b_miniplayer', '1');
-
-				var navRight = matchURL.isNewBangumi() ? document.querySelector('.bangumi-nav-right') : document.querySelector('.fixed-nav-m');
-				if (navRight === null) {
-					return;
-				}
-				var miniSwitch = matchURL.isNewBangumi() ? navRight.querySelectorAll('.bangumi-nav-right > .nav-mini-switch') : navRight.querySelectorAll('.fixed-nav-m .mini');
-				if (miniSwitch.length > 2 ) {
-					return;
-				} else {
-					miniSwitch = miniSwitch[0];
-				}
-
-				var miniplayer = function(type, miniSwitch) {
-					var isMiniplayer = localStorage.getItem('b_miniplayer');
-					if (type === "off") {
-						if (isMiniplayer === "1") miniSwitch.click();
-					} else if (type === "on") {
-						if (isMiniplayer === "0") miniSwitch.click();
-					}
-				};
-				var setMiniPlayer = function(scroll_pos) {
-					var adjustPlayerMiniplayer = localStorage.getItem('adjustPlayer_b_miniplayer');
-					//console.log(adjustPlayerMiniplayer);
-					if (adjustPlayerMiniplayer === "1") {
-						if (!matchURL.isNewBangumi() || scroll_pos >= document.querySelector('#bangumi_detail').offsetTop) {
-							miniplayer("on", miniSwitch);
-						}
-						else {
-							miniplayer("off", miniSwitch);
-						}
-					} else if (adjustPlayerMiniplayer === "0") {
-						miniplayer("off", miniSwitch);
-					}
-				};
-				var miniSwitchClone = miniSwitch.cloneNode(true);
-				var setMiniSwitchClone = function() {
-					setMiniPlayer(window.scrollY);
-					var miniplayerValue = localStorage.getItem('adjustPlayer_b_miniplayer');
-					//console.log(miniplayerValue);
-					if (miniplayerValue === '0') {
-						miniSwitchClone.innerHTML = miniSwitchClone.innerHTML.replace('ON', 'OFF');
-						miniSwitchClone.title = miniSwitchClone.title.replace('关闭', '打开');
-					} else if (miniplayerValue === '1') {
-						miniSwitchClone.innerHTML = miniSwitchClone.innerHTML.replace('OFF', 'ON');
-						miniSwitchClone.title = miniSwitchClone.title.replace('打开', '关闭');
-					}
-				};
-				miniSwitchClone.onclick = function(e) {
-					var adjustPlayerMiniplayer = localStorage.getItem('adjustPlayer_b_miniplayer');
-					//console.log(adjustPlayerMiniplayer);
-					if (adjustPlayerMiniplayer === '0') localStorage.setItem('adjustPlayer_b_miniplayer', '1');
-					else if (adjustPlayerMiniplayer === '1') localStorage.setItem('adjustPlayer_b_miniplayer', '0');
-					setMiniSwitchClone();
-					return;
-				};
-				setMiniSwitchClone();
-				miniSwitch.setAttribute('style', 'display:none');
-				navRight.insertBefore(miniSwitchClone, miniSwitch);
-
-				if (matchURL.isNewBangumi()) {
-					var last_known_scroll_position = 0;
-					var ticking = false;
-					window.addEventListener('scroll', function(e) {
-						last_known_scroll_position = window.scrollY;
-						if (!ticking) {
-							window.requestAnimationFrame(function() {
-								setMiniPlayer(last_known_scroll_position);
-								ticking = false;
-							});
-						}
-						ticking = true;
-					});
-				}
-			} catch (e) {console.log('fixMiniPlayer：' + e);}
 		},
 		autoHideControlBar: function (set,focusDanmakuInput,video) {
 			if (typeof set !== 'undefined') {
@@ -1691,7 +1641,6 @@
 								adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
 								adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-								//adjustPlayer.fixMiniPlayer();
 								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
 									adjustPlayer.resizeMiniPlayer(true,320);
 								} else {
@@ -1774,7 +1723,6 @@
 									adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
 									adjustPlayer.shortcuts(setting.shortcuts);
 
-									//window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 									reloadPList.init();
 									console.log('adjustPlayer:\nhtml5Player init success');
 								}
@@ -1847,7 +1795,6 @@
 							adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
 							adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
 							adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-							//adjustPlayer.fixMiniPlayer();
 							reloadPList.init();
 						}, 1000);
 						console.log('adjustPlayer:\nflashPlayer reload success');
@@ -1924,7 +1871,6 @@
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
 								adjustPlayer.autoPlay(setting.autoPlay,video);
 
-								//window.setTimeout(function() {adjustPlayer.fixMiniPlayer();}, 1000);
 								reloadPList.init();
 								console.log('adjustPlayer:\nhtml5Player reload success');
 							}
