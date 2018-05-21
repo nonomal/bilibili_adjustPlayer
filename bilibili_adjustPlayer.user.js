@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.47
+// @version     1.48
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -223,6 +223,32 @@
 					}
 				} else {
 					hideDanmuku();
+				}
+			}
+		},
+		hideDanmukuFilterType: function (set,type) {
+			if (typeof set !== 'undefined') {
+				var hideDanmukuFilterType = function (ftype) {
+					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-panel .bilibili-player-danmaku-setting-lite-type-list div[ftype="'+ ftype +'"] ');
+					if (controlBtn !== null) {
+						if (controlBtn.getAttribute("name").search("on") !== -1) {
+							doClick(controlBtn);
+						}
+					}
+				};
+
+				if (typeof type !== 'undefined') {
+					var typelist  = document.querySelectorAll('.bilibili-player-danmaku-setting-lite-panel .bilibili-player-danmaku-setting-lite-type-list div[ftype] '), i;
+					///console.log(typelist);
+					for (i = 0; i < typelist.length; ++i) {
+						doClick(typelist[i]);
+					}
+					if(type === 'topAndbottom'){
+						hideDanmukuFilterType('top');
+						hideDanmukuFilterType('bottom');
+					} else {
+						hideDanmukuFilterType(type);
+					}
 				}
 			}
 		},
@@ -1717,6 +1743,7 @@
 									window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
 
 									adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
+									adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type);
 									adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
 									adjustPlayer.autoPlay(setting.autoPlay,video);
 									adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);
@@ -1866,6 +1893,7 @@
 								//修复没开启“自动宽屏模式”自动关灯失效
 								window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
 								adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
+								adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type);
 								adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
 								window.setTimeout(function() {adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);}, 200);
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
@@ -2366,6 +2394,15 @@
             						<option value="bangumi">番剧</option>
             					</select>弹幕<span tooltip="使用帮助：&#10;1：选择默认隐藏“番剧”弹幕时，只隐藏 bangumi.bilibili.com 域名，www.bilibili.com/bangumi/play/ep 下视频的弹幕" class="tipsButton">[?]</span>
             				</label>
+            				<label class="h5">
+            					<input name="hideDanmukuFilterType" type="checkbox">默认隐藏
+            					<select name="hideDanmukuFilterType_Type">
+            						<option value="top">顶端</option>
+            						<option value="bottom">底端</option>
+									<option value="topAndbottom" selected="selected">顶端+底端</option>
+									<option value="scroll">滚动</option>
+            					</select>弹幕
+            				</label>
 							<label class="h5">
 								<input name="danmukuPreventShade" type="checkbox">默认
 								<select name="danmukuPreventShadeType">
@@ -2382,7 +2419,7 @@
             		<legend><label>播放模式</label></legend>
             		<div class="block">
 						<label><input name="autoWide" type="checkbox">自动宽屏</label>
-						<label class="h5" style="margin-left: 24px;">退出全屏后
+						<label class="h5" style="margin-left: 33px;">退出全屏后
 							<select name="autoWideFullscreen">
             					<option value="off" selected="selected">关闭</option>
             					<option value="on">开启</option>
@@ -2391,7 +2428,7 @@
 						</label>
             			<label class="h5"><input name="autoWebFullScreen" type="checkbox">自动网页全屏<span tooltip="使用帮助：&#10;1：按Esc键退出网页全屏&#10;3：开启此功能后，调整大小，自动宽屏，定位功能不会启用" class="tipsButton">[?]</span></label>
             			<label class="h5"><input name="doubleClickFullScreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,doubleClickFullScreenDelayed" >双击全屏<span tooltip="使用帮助：&#10;1：双击视频区域全屏" class="tipsButton">[?]</span></label>
-						<label class="h5" style="margin-left: 24px;">播放/暂停延时<input name="doubleClickFullScreenDelayed" type="number" min="0" max="500" placeholder="200" value="200" style="width: 45px;">毫秒<span tooltip="使用帮助：&#10;1：开启“双击全屏”功能后点击视频区域“播放/暂停”会增加延时，使全屏功能更流畅&#10;2：由于增加了延时，导致点击视频区域“播放/暂停”功能不是及时的，这时可以用键盘空格键暂停&#10;3：毫秒数设置为0，关闭延时" class="tipsButton">[?]</span></label>
+						<label class="h5" style="margin-left: 33px;">播放/暂停延时<input name="doubleClickFullScreenDelayed" type="number" min="0" max="500" placeholder="200" value="200" style="width: 45px;">毫秒<span tooltip="使用帮助：&#10;1：开启“双击全屏”功能后点击视频区域“播放/暂停”会增加延时，使全屏功能更流畅&#10;2：由于增加了延时，导致点击视频区域“播放/暂停”功能不是及时的，这时可以用键盘空格键暂停&#10;3：毫秒数设置为0，关闭延时" class="tipsButton">[?]</span></label>
             			<label class="h5"><input name="autoFullScreen" type="checkbox">半自动全屏<span tooltip="使用帮助：&#10;1：因为浏览器有限制无法使用脚本模拟自动全屏，需要手动按下 F11 键全屏。&#10;3：退出全屏需要手动按 F11 键，再次按 Esc 键退出网页全屏。&#10;4：建议搭配“自动播放下一个视频”功能使用。&#10;" class="tipsButton">[?]</span></label>
 					</div>
             	</fieldset>
@@ -2402,7 +2439,7 @@
             			<label class="h5"><input name="autoNextPlist" type="checkbox">自动播放下一个视频<span tooltip="使用帮助：&#10;1：此选项启用后将无视“B站”HTML5播放器自带的“自动换P功能”&#10;2：自动跳过“承包榜”、“充电名单”" class="tipsButton">[?]</span></label>
             			<label class="h5"><input name="autoLoopVideo" type="checkbox">自动循环播放当前视频<span tooltip="使用帮助：&#10;1：开启此功能后“自动播放下一个视频”不会启用 &#10;" class="tipsButton">[?]</span></label>
 						<label class="h5"><input name="skipSetTime" type="checkbox" action="childElementDisabledEvent" disabledChildElement="inputs,skipSetTimeValueMinutes;skipSetTimeValueSeconds" >自动从指定时间开始播放</label>
-            			<label style="margin-left: 24px;">
+            			<label style="margin-left: 33px;">
             				<input name="skipSetTimeValueMinutes" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">分钟
             				<input name="skipSetTimeValueSeconds" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">秒
             				<input type="hidden" name="skipSetTimeValue">
@@ -2429,7 +2466,7 @@
             					</select>
             					顶端<span tooltip="使用帮助：&#10;1：如果不满意位置，可以设置偏移位置，往上或往下移（播放器顶端位置（或视频顶端位置）是参照）。" class="tipsButton">[?]</span>
             				</label>
-            				<label style="margin-left: 24px;">定位偏移
+            				<label style="margin-left: 33px;">定位偏移
             					<select name="autoFocusOffsetType">
             						<option value="defalut" selected="selected">默认</option>
             						<option value="sub">上移</option>
@@ -2450,7 +2487,7 @@
             				<input name="resizeMiniPlayerSize" type="number" min="0" value="320" placeholder="320" style="width: 45px;" disabled="">像素
             				<span tooltip="使用帮助：&#10;1：调整评论处迷你播放器大小，输入合适的宽度后自动计算新大小&#10;   （ 新大小比例为 16：9）&#10;" class="tipsButton">[?]</span>
 						</label>
-						<label class="h5" style="margin-left: 24px;">
+						<label class="h5" style="margin-left: 33px;">
 							迷你播放器
 							<select name="resizeMiniPlayerSizeResizable">
             					<option value="off" selected="selected">关闭</option>
@@ -2842,7 +2879,7 @@
 			var content = commentToString(function () { /*
 			<p style="margin-bottom: 4px;font-size: 16px;">请在输入框内按下需要的按键设置快捷键：<span id="tips" style="text-align: left; color: #ff81aa; margin-top: 33px; right: 32px; position: absolute;"></span></p>
 			<p>
-			  <input type="text" name="keyName" placeholder="支持单个组合键ctrl，alt，shift" style="width: 574px;font-size: 16px;text-align: center;padding:4px 0;border: 1px solid #ccd0d7;border-radius: 4px;" >
+			  <input type="text" name="keyName" placeholder="支持单个组合键ctrl，alt，shift" style="width: 574px;height:30px;font-size: 16px;text-align: center;padding:4px 0;border: 1px solid #ccd0d7;border-radius: 4px;" >
 			  <input type="hidden" name="keyCode" >
 			  <input type="hidden" name="typeName" >
 			</p>
@@ -3087,63 +3124,60 @@
 	function addStyle() {
 		try{
 			var css = commentToString(function () { /*
-          .adjust-player-mask { display: none; position: fixed; top: 0; left: 0; z-index: 100001; width: 100%; height: 100%; background: #000; opacity: .6; filter: alpha(opacity=60) }
-          #adjust-player .title { font-size: 16px; color: #222; text-align: center; font-weight: bold; margin-bottom: 20px }
-          #adjust-player .dialog { position: fixed; z-index: 100002; top: 50%; margin-top: -280px; left: 50%; width: 580px; margin-left: -320px; padding: 20px; background-color: rgb(255, 255, 255); border-radius: 6px; box-shadow: 1px 1px 40px 0px rgba(0, 0, 0, 0.6); display: block; font-size: 14px; line-height: 26px }
-          #adjust-player .title span { font-size: 12px; color: #fff; background-color: #00a1d6; display: inline-block; width: 22px; height: 22px; position: absolute; right: 25px; border-radius: 50%; line-height: 22px; transition: .1s; transition-property: background-color; margin-top: 2px }
-          #adjust-player .title span:hover { background-color: #00b5e5; cursor: pointer }
-          #adjust-player .title [action="help"] { right: 52px }
-          #adjust-player fieldset { border: 1px solid #e5e9ef; border-radius: 4px; padding: 0 6px 6px; background-color: #f4f5f7; margin-bottom: 10px }
-          #adjust-player legend { font-weight: bold; font-size: 14px; margin-left: 10px; border: 1px solid #e5e9ef; background-color: #fff; padding: 0 10px; border-radius: 4px }
-          #adjust-player legend label span { color: #6d757a; font-size: 12px }
-          #adjust-player input, #adjust-player select { margin: 0px 2px }
-          #adjust-player input[type="number"] { padding: 1px 0 }
-          #adjust-player input[readOnly="true"] { color: #99a2aa; width: 80px; max-width: 80px; border: 0px; background: #f4f5f7 }
-          #adjust-player select { height: 23px }
-          #adjust-player .block { padding: 5px 0 }
-          #adjust-player .block .bold { font-weight: bold }
-          #adjust-player .block label { display: block; margin-left: 7px }
-          #adjust-player .tipsButton { font-size: 12px; color: #00a1d6; cursor: pointer; padding: 0 2px }
-          #adjust-player .left { float: left }
-          #adjust-player .right { float: right }
-          #adjust-player .left, #adjust-player .right { width: 48%; vertical-align: top }
-          #adjust-player .shortcutsItem { max-width: 200px }
-          #adjust-player .info { position: absolute; bottom: 20px; border: 1px solid #e5e9ef; border-radius: 20px; padding: 0 10px }
-          #adjust-player .info .ver { font-weight: bold; padding-right: 5px; color: #6d757a }
-          #adjust-player a { outline: 0; color: #00a1d6; text-decoration: none; cursor: pointer }
-          #adjust-player .btns { text-align: right; width: 100%; display: inline-block }
-          #adjust-player .btn { margin: 10px 0px 0px 10px; width: 100px; height: 28px; line-height: 28px; font-size: 14px; display: inline-block; color: #fff; cursor: pointer; text-align: center; border-radius: 4px; background-color: #00a1d6; vertical-align: middle; border: 1px solid #00a1d6; transition: .1s; transition-property: background-color, border, color; user-select: none }
-          #adjust-player .btn:hover { color: #fff; background: #00b5e5; border-color: #00b5e5 }
-          #adjust-player .btn-cancel { display: inline-block; text-align: center; cursor: pointer; color: #222; border: 1px solid #ccd0d7; background-color: #fff; border-radius: 4px; transition: .1s; transition-property: background-color, border, color }
-          #adjust-player .btn-cancel:hover { color: #00a1d6; border-color: #00a1d6; background: #fff }
-          #adjust-player .h5 { color: #ccc }
-          #adjust-player form .wrapper { overflow-x: hidden; white-space: nowrap }
-          #adjust-player .modalWindow { z-index: 100000 }
-          #adjust-player .shortcutsItem.disabled > label { color: #ccc !important }
-          #adjust-player-tips { width: 100%; height: 100%; line-height: 16px; color: #333; overflow: auto; resize: horizontal; background: linear-gradient(135deg,#E6E7E8 0,#E6E7E8 99%,#fff 95%); }
-          #adjust-player-tips p,#adjust-player-tips-save p { text-align: left }
-          #adjust-player-tips-save .content { position: absolute; top:20px; width: 485px; font-size: 16px; line-height: 24px; padding: 20px; background: #fff; border: 1px solid #eee; border-radius: 4px;z-index:1; }
-          #adjust-player-tips-save .content .bold { font-weight: bold; font-size: 18px; text-align: center; color: #333; padding-bottom: 18px }
-          #adjust-player-tips-save .content .btn { display: inline-block; margin-top: 10px; padding: 4px 0; width: 120px; color: #fff; cursor: pointer; text-align: center; border-radius: 4px; background-color: #00a1d6; vertical-align: middle; border: 1px solid #00a1d6; transition: .1s; transition-property: background-color, border, color; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none }
-          #adjust-player-tips-save .content .btn:hover { background-color: #00b5e5; border-color: #00b5e5 }
-          #adjust-player-tips-save .content .btn.b-btn-cancel { text-align: center; cursor: pointer; color: #222; border: 1px solid #ccd0d7; background-color: #fff; border-radius: 4px; transition: .1s; transition-property: background-color, border, color }
-          #adjust-player-tips-save .content .btn.b-btn-cancel:hover { color: #00a1d6; border-color: #00a1d6 }
-          #adjust-player-tips-save .content .btns { margin-top: 10px }
-          #adjust-player-tips-save .box  { margin:10px 0; padding:10px; color: #222; border-radius: 4px; border: 1px solid #ccd0d7; }
-          #adjust-player-tips-save .custom-width .btn { display: inline-block; width: auto; padding:0 10px; }
-          #adjust-player-tips .info { position: relative; top: 10px; margin-left: 10px; font-weight: bold;z-index:10; }
-          #adjust-player-tips .info span { color: #333; font-size: 12px; color: #fb7299 }
-          #adjust-player-tips .tips-text { position: absolute; bottom: 10px; margin-left: 10px; color: #99a2aa; }
-          #adjust-player-tips .drag-arrow { position: absolute; right: 0; }
-          .bgray-btn { height: auto !important; margin: 10px 0px 0px 10px !important }
-          .video-box-module .bili-wrapper .bgray-btn-wrap, .player-wrapper .bangumi-player .bgray-btn-wrap { top: -10px !important }
-          .video-toolbar-module { width: 1160px !important; margin: 0 auto; margin-top: 20px }
-          #app .player-box { padding: 20px 0 }
-          #bofqi.heimu { box-shadow: none !important }
-          @media screen and (max-width:1400px) {
-               .video-toolbar-module { width: 980px !important }
-          }
-        */});
+				.adjust-player-mask{display:none;position:fixed;top:0;left:0;z-index:100001;width:100%;height:100%;background:#000;opacity:.6;filter:alpha(opacity=60)}
+				#adjust-player .title{font-size:16px;color:#222;text-align:center;font-weight:bold;margin-bottom:20px}
+				#adjust-player .dialog{position:fixed;z-index:100002;top:50%;margin-top:-280px;left:50%;width:580px;margin-left:-320px;padding:20px;background-color:rgb(255,255,255);border-radius:6px;box-shadow:1px 1px 40px 0px rgba(0,0,0,0.6);display:block;font-size:14px;line-height:26px}
+				#adjust-player .title span{font-size:12px;color:#fff;background-color:#00a1d6;display:inline-block;width:22px;height:22px;position:absolute;right:25px;border-radius:50%;line-height:22px;transition:.1s;transition-property:background-color;margin-top:2px}
+				#adjust-player .title span:hover{background-color:#00b5e5;cursor:pointer}
+				#adjust-player .title [action="help"]{right:52px}
+				#adjust-player fieldset{border:1px solid #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
+				#adjust-player legend{font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
+				#adjust-player legend label span{color:#6d757a;font-size:12px}
+				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;height:24px;font-size:13px;margin:0 2px;outline:0;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
+				#adjust-player input[type="checkbox"]{width:15px;height:15px;margin:-4px 4px 0 4px}
+				#adjust-player input[type="checkbox"]::before{color:#99a2aa;border:1px solid #99a2aa;display:inline-block;width:14px;height:14px;background-color:#f4f5f7;border-radius:2px;content:" "}
+				#adjust-player input[type="checkbox"]:checked::before{color:#00a1d6;display:inline-block;width:14px;height:14px;border:0px;border-radius:2px;font-family:bilibili-iconfont;content:"\E629";font-size:16px}
+				#adjust-player input[readOnly="true"]{color:#99a2aa;width:80px;max-width:80px;border:0px;background:#f4f5f7}
+				#adjust-player select{text-align-last:center;text-align:center}
+				#adjust-player .block{padding:5px 0}
+				#adjust-player .block .bold{font-weight:bold}
+				#adjust-player .block label{display:block;margin:2px 0 2px 10px;line-height:24px}
+				#adjust-player .tipsButton{font-size:12px;color:#00a1d6;cursor:pointer;padding:0 2px}
+				#adjust-player .left{float:left}
+				#adjust-player .right{float:right}
+				#adjust-player .left,#adjust-player .right{width:48%;vertical-align:top}
+				#adjust-player .shortcutsItem{max-width:200px}
+				#adjust-player .info{position:absolute;bottom:20px;border:1px solid #e5e9ef;border-radius:20px;padding:0 10px}
+				#adjust-player .info .ver{font-weight:bold;padding-right:5px;color:#6d757a}
+				#adjust-player a{outline:0;color:#00a1d6;text-decoration:none;cursor:pointer}
+				#adjust-player .btns{text-align:right;width:100%;display:inline-block}
+				#adjust-player .btn{margin:10px 0px 0px 10px;width:100px;height:28px;line-height:28px;font-size:14px;display:inline-block;color:#fff;cursor:pointer;text-align:center;border-radius:4px;background-color:#00a1d6;vertical-align:middle;border:1px solid #00a1d6;transition:.1s;transition-property:background-color,border,color;user-select:none}
+				#adjust-player .btn:hover{color:#fff;background:#00b5e5;border-color:#00b5e5}
+				#adjust-player .btn-cancel{display:inline-block;text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
+				#adjust-player .btn-cancel:hover{color:#00a1d6;border-color:#00a1d6;background:#fff}
+				#adjust-player .h5{color:#ccc}
+				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap}
+				#adjust-player .modalWindow{z-index:100000}
+				#adjust-player .shortcutsItem.disabled > label{color:#ccc!important}
+				#adjust-player-tips{width:100%;height:100%;line-height:16px;color:#333;overflow:auto;resize:horizontal;background:linear-gradient(135deg,#E6E7E8 0,#E6E7E8 99%,#fff 95%)}
+				#adjust-player-tips p,#adjust-player-tips-save p{text-align:left}
+				#adjust-player-tips-save .content{position:absolute;top:20px;width:485px;font-size:16px;line-height:24px;padding:20px;background:#fff;border:1px solid #eee;border-radius:4px;z-index:1}
+				#adjust-player-tips-save .content .bold{font-weight:bold;font-size:18px;text-align:center;color:#333;padding-bottom:18px}
+				#adjust-player-tips-save .content .btn{display:inline-block;margin-top:10px;padding:4px 0;width:120px;color:#fff;cursor:pointer;text-align:center;border-radius:4px;background-color:#00a1d6;vertical-align:middle;border:1px solid #00a1d6;transition:.1s;transition-property:background-color,border,color;-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+				#adjust-player-tips-save .content .btn:hover{background-color:#00b5e5;border-color:#00b5e5}
+				#adjust-player-tips-save .content .btn.b-btn-cancel{text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
+				#adjust-player-tips-save .content .btn.b-btn-cancel:hover{color:#00a1d6;border-color:#00a1d6}
+				#adjust-player-tips-save .content .btns{margin-top:10px}
+				#adjust-player-tips-save .box{margin:10px 0;padding:10px;color:#222;border-radius:4px;border:1px solid #ccd0d7}
+				#adjust-player-tips-save .custom-width .btn{display:inline-block;width:auto;padding:0 10px}
+				#adjust-player-tips .info{position:relative;top:10px;margin-left:10px;font-weight:bold;z-index:10}
+				#adjust-player-tips .info span{color:#333;font-size:12px;color:#fb7299}
+				#adjust-player-tips .tips-text{position:absolute;bottom:10px;margin-left:10px;color:#99a2aa}
+				#adjust-player-tips .drag-arrow{position:absolute;right:0}
+				.bgray-btn{height:auto!important;margin:10px 0px 0px 10px!important}
+				.fix-Resize-Height .bgray-btn-wrap{top:10px!important}
+				#v_top_gg{position:absolute}
+			*/});
 			var node = document.createElement('style');
 			node.type = 'text/css';
 			node.id = 'adjustPlayerMainCss';
