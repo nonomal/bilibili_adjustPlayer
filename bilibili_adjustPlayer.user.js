@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.48
+// @version     1.49
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -515,6 +515,7 @@
 						'.player-wrapper .bangumi-player, #__bofqi.bili-wrapper { width: '+ width +' !important; background: none !important; height: auto !important;} ',
 						'#__bofqi.bili-wrapper { min-height: unset !important; } ',
 						'.bangumi-player.fix-Resize-Height { position: static !important; } ',
+						'.fix-Resize-Height .bgray-btn-wrap { top:10px !important; }',
 						'#bofqi.wide .autohide-controlbar, .wide.autohide-controlbar-movies { width: '+ width +' !important; height: calc('+ width +' / calc('+ ratio +') + 0px) !important; } '
 					];
 					var node = document.createElement('style');
@@ -866,21 +867,26 @@
 
 				var miniPlayerHideShowEvent = function() {
 					var initResize = function(isMiniPlayer){
-						if (isMiniPlayer) {
-							if(typeof window.isInitResize === 'undefined' || window.isInitResize === false) {
-								if (typeof isResizable !== 'undefined' && isResizable === 'on') {
-									resizable(isMiniPlayer);
-								} else {
-									resize();
+						var player = isPlayer();
+						if (player === "html5Player") {
+							if (isMiniPlayer) {
+								if(typeof window.isInitResize === 'undefined' || window.isInitResize === false) {
+									if (typeof isResizable !== 'undefined' && isResizable === 'on') {
+										resizable(isMiniPlayer);
+									} else {
+										resize();
+									}
+									miniPlayerHideShow('show');
+									window.isInitResize = true;
 								}
-								miniPlayerHideShow('show');
-								window.isInitResize = true;
+							} else {
+								if(typeof window.isInitResize === 'undefined' || window.isInitResize === true) {
+									miniPlayerHideShow('hide');
+									window.isInitResize = false;
+								}
 							}
 						} else {
-							if(typeof window.isInitResize === 'undefined' || window.isInitResize === true) {
-								miniPlayerHideShow('hide');
-								window.isInitResize = false;
-							}
+							resize();
 						}
 					};
 
@@ -1962,19 +1968,22 @@
 			}
 		},
 		getScreenMode: function(){
-			var mode;
-			var player = isBangumi('#bilibiliPlayer').getAttribute("class");
-			if (player !== null) {
-				var playerMode = player.replace(/.+mode-/g,'');
-				if (playerMode !== null) {
-					mode = playerMode;
+			var player = isPlayer();
+			if (player === "html5Player") {
+				var mode;
+				var player = isBangumi('#bilibiliPlayer').getAttribute("class");
+				if (player !== null) {
+					var playerMode = player.replace(/.+mode-/g,'');
+					if (playerMode !== null) {
+						mode = playerMode;
+					}
 				}
+				if(mode.search("bilibili-player") !== -1) {
+					mode = 'normal';
+				}
+				//console.log(mode);
+				sessionStorage.setItem("adjustPlayer_screenMode", mode);
 			}
-			if(mode.search("bilibili-player") !== -1) {
-				mode = 'normal';
-			}
-			//console.log(mode);
-			sessionStorage.setItem("adjustPlayer_screenMode", mode);
 		},
 		init: function(){
 			var pListId = reloadPList.getPListId(location.href);
@@ -2284,100 +2293,100 @@
             			<legend><label>快捷键</label></legend>
             			<div class="block">
             				<label class="h5">
-            					<input name="shortcutsSwitch" type="checkbox" list="shortcuts" action="childElementDisabledEvent" disabledChildElement="div,shortcutsItem" >启用快捷键功能<span tooltip="使用帮助：&#10;1：快捷键的总开关，开启后“快捷键功能”才会生效" class="tipsButton">[?]</span>
+            					<input name="shortcutsSwitch" type="checkbox" list="shortcuts" action="childElementDisabledEvent" disabledChildElement="div,shortcutsItem" ><span class="checkbox"></span>启用快捷键功能<span tooltip="使用帮助：&#10;1：快捷键的总开关，开启后“快捷键功能”才会生效" class="tipsButton">[?]</span>
             				</label>
             				<div class="shortcutsItem">
-            					<label class="h5"><input name="shortcutsVolumeSeekingGlobal" type="checkbox" list="shortcuts" >修改音量/快进退为全局<span tooltip="使用帮助：&#10;1：修改默认的快捷键行为，不用把当前焦点定位到播放器上也能生效。" class="tipsButton">[?]</span></label>
+            					<label class="h5"><input name="shortcutsVolumeSeekingGlobal" type="checkbox" list="shortcuts" ><span class="checkbox"></span>修改音量/快进退为全局<span tooltip="使用帮助：&#10;1：修改默认的快捷键行为，不用把当前焦点定位到播放器上也能生效。" class="tipsButton">[?]</span></label>
             					<label class="h5">
-            						<input name="playPause" type="checkbox" list="shortcuts">播放/暂停视频 <span class="tipsButton" action="shortcuts" typeName="playPause">[设置]</span>
+            						<input name="playPause" type="checkbox" list="shortcuts"><span class="checkbox"></span>播放/暂停视频 <span class="tipsButton" action="shortcuts" typeName="playPause">[设置]</span>
             						<input type="text" name="playPauseKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="playPauseKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="showHideDanmuku" type="checkbox" list="shortcuts">显示/隐藏弹幕 <span class="tipsButton" action="shortcuts" typeName="showHideDanmuku">[设置]</span>
+            						<input name="showHideDanmuku" type="checkbox" list="shortcuts"><span class="checkbox"></span>显示/隐藏弹幕 <span class="tipsButton" action="shortcuts" typeName="showHideDanmuku">[设置]</span>
             						<input type="text" name="showHideDanmukuKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="showHideDanmukuKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="playerWide" type="checkbox" list="shortcuts">宽屏模式 <span class="tipsButton" action="shortcuts" typeName="playerWide">[设置]</span>
+            						<input name="playerWide" type="checkbox" list="shortcuts"><span class="checkbox"></span>宽屏模式 <span class="tipsButton" action="shortcuts" typeName="playerWide">[设置]</span>
             						<input type="text" name="playerWideKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="playerWideKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="fullscreen" type="checkbox" list="shortcuts">全屏模式 <span class="tipsButton" action="shortcuts" typeName="fullscreen">[设置]</span>
+            						<input name="fullscreen" type="checkbox" list="shortcuts"><span class="checkbox"></span>全屏模式 <span class="tipsButton" action="shortcuts" typeName="fullscreen">[设置]</span>
             						<input type="text" name="fullscreenKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="fullscreenKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="webfullscreen" type="checkbox" list="shortcuts">网页全屏模式 <span class="tipsButton" action="shortcuts" typeName="webfullscreen">[设置]</span>
+            						<input name="webfullscreen" type="checkbox" list="shortcuts"><span class="checkbox"></span>网页全屏模式 <span class="tipsButton" action="shortcuts" typeName="webfullscreen">[设置]</span>
             						<input type="text" name="webfullscreenKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="webfullscreenKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="videoMute" type="checkbox" list="shortcuts">静音/恢复静音  <span class="tipsButton" action="shortcuts" typeName="videoMute">[设置]</span>
+            						<input name="videoMute" type="checkbox" list="shortcuts"><span class="checkbox"></span>静音/恢复静音  <span class="tipsButton" action="shortcuts" typeName="videoMute">[设置]</span>
             						<input type="text" name="videoMuteKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="videoMuteKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="lightOnOff" type="checkbox" list="shortcuts">播放器关灯/开灯  <span class="tipsButton" action="shortcuts" typeName="lightOnOff">[设置]</span>
+            						<input name="lightOnOff" type="checkbox" list="shortcuts"><span class="checkbox"></span>播放器关灯/开灯  <span class="tipsButton" action="shortcuts" typeName="lightOnOff">[设置]</span>
             						<input type="text" name="lightOnOffKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="lightOnOffKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="loopVideoOnOff" type="checkbox" list="shortcuts">循环播放  <span class="tipsButton" action="shortcuts" typeName="loopVideoOnOff">[设置]</span>
+            						<input name="loopVideoOnOff" type="checkbox" list="shortcuts"><span class="checkbox"></span>循环播放  <span class="tipsButton" action="shortcuts" typeName="loopVideoOnOff">[设置]</span>
             						<input type="text" name="loopVideoOnOffKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="loopVideoOnOffKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="focusPlayer" type="checkbox" list="shortcuts">定位到播放器<span tooltip="使用帮助：&#10;1：具体位置根据“功能调整” - “自动定位到XXX顶端” 设置的值来定位&#10（没设置“功能调整” - “自动定位到XXX顶端”功能的话，默认定位到播放器顶端）&#10;2：按下后会在“播放器位置”，和“之前浏览的位置”进行切换" class="tipsButton">[?]</span>
+            						<input name="focusPlayer" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到播放器<span tooltip="使用帮助：&#10;1：具体位置根据“功能调整” - “自动定位到XXX顶端” 设置的值来定位&#10（没设置“功能调整” - “自动定位到XXX顶端”功能的话，默认定位到播放器顶端）&#10;2：按下后会在“播放器位置”，和“之前浏览的位置”进行切换" class="tipsButton">[?]</span>
 									<span class="tipsButton" action="shortcuts" typeName="focusPlayer">[设置]</span>
             						<input type="text" name="focusPlayerKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusPlayerKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="focusDanmakuInput" type="checkbox" list="shortcuts">定位到弹幕框<span tooltip="使用帮助：&#10;1：焦点在弹幕框时键盘按 Tab 键隐藏弹幕框&#10;2：开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，请用快捷键来显示弹幕框" class="tipsButton">[?]</span>
+            						<input name="focusDanmakuInput" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到弹幕框<span tooltip="使用帮助：&#10;1：焦点在弹幕框时键盘按 Tab 键隐藏弹幕框&#10;2：开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，请用快捷键来显示弹幕框" class="tipsButton">[?]</span>
 									<span class="tipsButton" action="shortcuts" typeName="focusDanmakuInput">[设置]</span>
             						<input type="text" name="focusDanmakuInputKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusDanmakuInputKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="moveToPlayerFocus" type="checkbox" list="shortcuts">焦点移到播放器
+            						<input name="moveToPlayerFocus" type="checkbox" list="shortcuts"><span class="checkbox"></span>焦点移到播放器
 									<span class="tipsButton" action="shortcuts" typeName="moveToPlayerFocus">[设置]</span>
             						<input type="text" name="moveToPlayerFocusKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="moveToPlayerFocusKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="addVideoSpeed" type="checkbox" list="shortcuts">增加播放速度 <span class="tipsButton" action="shortcuts" typeName="addVideoSpeed">[设置]</span>
+            						<input name="addVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>增加播放速度 <span class="tipsButton" action="shortcuts" typeName="addVideoSpeed">[设置]</span>
             						<input type="text" name="addVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="addVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="subVideoSpeed" type="checkbox" list="shortcuts">减少播放速度 <span class="tipsButton" action="shortcuts" typeName="subVideoSpeed">[设置]</span>
+            						<input name="subVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>减少播放速度 <span class="tipsButton" action="shortcuts" typeName="subVideoSpeed">[设置]</span>
             						<input type="text" name="subVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="subVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="resetVideoSpeed" type="checkbox" list="shortcuts">重置播放速度 <span class="tipsButton" action="shortcuts" typeName="resetVideoSpeed">[设置]</span>
+            						<input name="resetVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>重置播放速度 <span class="tipsButton" action="shortcuts" typeName="resetVideoSpeed">[设置]</span>
             						<input type="text" name="resetVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="resetVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="prevPlist" type="checkbox" list="shortcuts">上一个视频  <span class="tipsButton" action="shortcuts" typeName="prevPlist">[设置]</span>
+            						<input name="prevPlist" type="checkbox" list="shortcuts"><span class="checkbox"></span>上一个视频  <span class="tipsButton" action="shortcuts" typeName="prevPlist">[设置]</span>
             						<input type="text" name="prevPlistKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="prevPlistKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="nextPlist" type="checkbox" list="shortcuts">下一个视频 <span class="tipsButton" action="shortcuts" typeName="nextPlist">[设置]</span>
+            						<input name="nextPlist" type="checkbox" list="shortcuts"><span class="checkbox"></span>下一个视频 <span class="tipsButton" action="shortcuts" typeName="nextPlist">[设置]</span>
             						<input type="text" name="nextPlistKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="nextPlistKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label class="h5">
-            						<input name="prevVideoFramerate" type="checkbox" list="shortcuts">快退一帧  <span class="tipsButton" action="shortcuts" typeName="prevVideoFramerate">[设置]</span>
+            						<input name="prevVideoFramerate" type="checkbox" list="shortcuts"><span class="checkbox"></span>快退一帧  <span class="tipsButton" action="shortcuts" typeName="prevVideoFramerate">[设置]</span>
             						<input type="text" name="prevVideoFramerateKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="prevVideoFramerateKeyCode" list="shortcuts" KeyCode="true">
             					</label>
             					<label class="h5">
-            						<input name="nextVideoFramerate" type="checkbox" list="shortcuts">快进一帧 <span class="tipsButton" action="shortcuts" typeName="nextVideoFramerate">[设置]</span>
+            						<input name="nextVideoFramerate" type="checkbox" list="shortcuts"><span class="checkbox"></span>快进一帧 <span class="tipsButton" action="shortcuts" typeName="nextVideoFramerate">[设置]</span>
             						<input type="text" name="nextVideoFramerateKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="nextVideoFramerateKeyCode" list="shortcuts" KeyCode="true">
             					</label>
@@ -2388,14 +2397,14 @@
             			<legend><label>弹幕</label></legend>
             			<div class="block">
             				<label class="h5">
-            					<input name="danmuku" type="checkbox">默认隐藏
+            					<input name="danmuku" type="checkbox"><span class="checkbox"></span>默认隐藏
             					<select name="danmukuType">
             						<option value="all" selected="selected">所有</option>
             						<option value="bangumi">番剧</option>
             					</select>弹幕<span tooltip="使用帮助：&#10;1：选择默认隐藏“番剧”弹幕时，只隐藏 bangumi.bilibili.com 域名，www.bilibili.com/bangumi/play/ep 下视频的弹幕" class="tipsButton">[?]</span>
             				</label>
             				<label class="h5">
-            					<input name="hideDanmukuFilterType" type="checkbox">默认隐藏
+            					<input name="hideDanmukuFilterType" type="checkbox"><span class="checkbox"></span>默认隐藏
             					<select name="hideDanmukuFilterType_Type">
             						<option value="top">顶端</option>
             						<option value="bottom">底端</option>
@@ -2404,13 +2413,13 @@
             					</select>弹幕
             				</label>
 							<label class="h5">
-								<input name="danmukuPreventShade" type="checkbox">默认
+								<input name="danmukuPreventShade" type="checkbox"><span class="checkbox"></span>默认
 								<select name="danmukuPreventShadeType">
             						<option value="on" selected="selected">开启</option>
             						<option value="off">关闭</option>
             					</select>防挡弹幕<span tooltip="使用帮助：&#10;1：“番剧”页面和普通页面的“防挡弹幕”默认设置竟然不一样？开启后设置让它一致 " class="tipsButton">[?]</span>
 							</label>
-							<label class="h5"><input name="tabDanmulist" type="checkbox">默认显示弹幕列表</label>
+							<label class="h5"><input name="tabDanmulist" type="checkbox"><span class="checkbox"></span>默认显示弹幕列表</label>
             		</div>
             	</fieldset>
             </div>
@@ -2418,7 +2427,7 @@
             	<fieldset class="modeGroup">
             		<legend><label>播放模式</label></legend>
             		<div class="block">
-						<label><input name="autoWide" type="checkbox">自动宽屏</label>
+						<label><input name="autoWide" type="checkbox"><span class="checkbox"></span>自动宽屏</label>
 						<label class="h5" style="margin-left: 33px;">退出全屏后
 							<select name="autoWideFullscreen">
             					<option value="off" selected="selected">关闭</option>
@@ -2426,19 +2435,19 @@
             				</select>自动宽屏
 							<span tooltip="使用帮助：&#10;1：开启“自动宽屏”功能后，退出全屏后是否开启宽屏" class="tipsButton">[?]</span>
 						</label>
-            			<label class="h5"><input name="autoWebFullScreen" type="checkbox">自动网页全屏<span tooltip="使用帮助：&#10;1：按Esc键退出网页全屏&#10;3：开启此功能后，调整大小，自动宽屏，定位功能不会启用" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="doubleClickFullScreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,doubleClickFullScreenDelayed" >双击全屏<span tooltip="使用帮助：&#10;1：双击视频区域全屏" class="tipsButton">[?]</span></label>
+            			<label class="h5"><input name="autoWebFullScreen" type="checkbox"><span class="checkbox"></span>自动网页全屏<span tooltip="使用帮助：&#10;1：按Esc键退出网页全屏&#10;3：开启此功能后，调整大小，自动宽屏，定位功能不会启用" class="tipsButton">[?]</span></label>
+            			<label class="h5"><input name="doubleClickFullScreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,doubleClickFullScreenDelayed" ><span class="checkbox"></span>双击全屏<span tooltip="使用帮助：&#10;1：双击视频区域全屏" class="tipsButton">[?]</span></label>
 						<label class="h5" style="margin-left: 33px;">播放/暂停延时<input name="doubleClickFullScreenDelayed" type="number" min="0" max="500" placeholder="200" value="200" style="width: 45px;">毫秒<span tooltip="使用帮助：&#10;1：开启“双击全屏”功能后点击视频区域“播放/暂停”会增加延时，使全屏功能更流畅&#10;2：由于增加了延时，导致点击视频区域“播放/暂停”功能不是及时的，这时可以用键盘空格键暂停&#10;3：毫秒数设置为0，关闭延时" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="autoFullScreen" type="checkbox">半自动全屏<span tooltip="使用帮助：&#10;1：因为浏览器有限制无法使用脚本模拟自动全屏，需要手动按下 F11 键全屏。&#10;3：退出全屏需要手动按 F11 键，再次按 Esc 键退出网页全屏。&#10;4：建议搭配“自动播放下一个视频”功能使用。&#10;" class="tipsButton">[?]</span></label>
+            			<label class="h5"><input name="autoFullScreen" type="checkbox"><span class="checkbox"></span>半自动全屏<span tooltip="使用帮助：&#10;1：因为浏览器有限制无法使用脚本模拟自动全屏，需要手动按下 F11 键全屏。&#10;3：退出全屏需要手动按 F11 键，再次按 Esc 键退出网页全屏。&#10;4：建议搭配“自动播放下一个视频”功能使用。&#10;" class="tipsButton">[?]</span></label>
 					</div>
             	</fieldset>
             	<fieldset class="playbackGroup">
             		<legend><label>播放视频</label></legend>
             		<div class="block">
-            			<label class="h5"><input name="autoPlay" type="checkbox">自动播放视频</label>
-            			<label class="h5"><input name="autoNextPlist" type="checkbox">自动播放下一个视频<span tooltip="使用帮助：&#10;1：此选项启用后将无视“B站”HTML5播放器自带的“自动换P功能”&#10;2：自动跳过“承包榜”、“充电名单”" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="autoLoopVideo" type="checkbox">自动循环播放当前视频<span tooltip="使用帮助：&#10;1：开启此功能后“自动播放下一个视频”不会启用 &#10;" class="tipsButton">[?]</span></label>
-						<label class="h5"><input name="skipSetTime" type="checkbox" action="childElementDisabledEvent" disabledChildElement="inputs,skipSetTimeValueMinutes;skipSetTimeValueSeconds" >自动从指定时间开始播放</label>
+            			<label class="h5"><input name="autoPlay" type="checkbox"><span class="checkbox"></span>自动播放视频</label>
+            			<label class="h5"><input name="autoNextPlist" type="checkbox"><span class="checkbox"></span>自动播放下一个视频<span tooltip="使用帮助：&#10;1：此选项启用后将无视“B站”HTML5播放器自带的“自动换P功能”&#10;2：自动跳过“承包榜”、“充电名单”" class="tipsButton">[?]</span></label>
+            			<label class="h5"><input name="autoLoopVideo" type="checkbox"><span class="checkbox"></span>自动循环播放当前视频<span tooltip="使用帮助：&#10;1：开启此功能后“自动播放下一个视频”不会启用 &#10;" class="tipsButton">[?]</span></label>
+						<label class="h5"><input name="skipSetTime" type="checkbox" action="childElementDisabledEvent" disabledChildElement="inputs,skipSetTimeValueMinutes;skipSetTimeValueSeconds" ><span class="checkbox"></span>自动从指定时间开始播放</label>
             			<label style="margin-left: 33px;">
             				<input name="skipSetTimeValueMinutes" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">分钟
             				<input name="skipSetTimeValueSeconds" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">秒
@@ -2459,7 +2468,7 @@
             	<fieldset class="functionGroup">
             			<legend><label>功能调整</label></legend>
             			<div class="block">
-            				<label><input name="autoFocus" type="checkbox">自动定位到
+            				<label><input name="autoFocus" type="checkbox"><span class="checkbox"></span>自动定位到
             					<select name="autoFocusPosition">
             						<option value="player" selected="selected">播放器</option>
             						<option value="video">视频</option>
@@ -2475,15 +2484,15 @@
             					<input name="autoFocusOffsetValue" type="number" min="0" value="0" placeholder="0" style="width: 45px;" disabled="">像素
             				</span>
             			</label>
-            			<label class="h5"><input name="autoHideControlBar" type="checkbox">自动隐藏播放器控制栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;3：鼠标移动到播放器顶部显示弹幕栏，移动到底部显示控制栏&#10;4：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;5：此功能修改自：https://userstyles.org/styles/131642/bilibili-html5" class="tipsButton">[?]</span></label>
+            			<label class="h5"><input name="autoHideControlBar" type="checkbox"><span class="checkbox"></span>自动隐藏播放器控制栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;3：鼠标移动到播放器顶部显示弹幕栏，移动到底部显示控制栏&#10;4：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;5：此功能修改自：https://userstyles.org/styles/131642/bilibili-html5" class="tipsButton">[?]</span></label>
             			<label>
-            				<input name="resizePlayer" type="checkbox">手动指定播放器大小
+            				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>手动指定播放器大小
             				<span class="tipsButton" action="adjustPlayerSize" tooltip="使用帮助：&#10;1：点击[调整大小]进行调整">[调整大小]</span>
             				<input type="hidden" name="adjustPlayerWidth">
 							<input type="hidden" name="adjustPlayerRatio">
             			</label>
             			<label>
-            				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize" >迷你播放器宽度
+            				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize" ><span class="checkbox"></span>迷你播放器宽度
             				<input name="resizeMiniPlayerSize" type="number" min="0" value="320" placeholder="320" style="width: 45px;" disabled="">像素
             				<span tooltip="使用帮助：&#10;1：调整评论处迷你播放器大小，输入合适的宽度后自动计算新大小&#10;   （ 新大小比例为 16：9）&#10;" class="tipsButton">[?]</span>
 						</label>
@@ -2495,7 +2504,7 @@
             				</select>可调整大小
 							<span tooltip="使用帮助：&#10;1：开启“修改迷你播放器宽度”后，拖动迷你播放器右下角调节按钮，可以调整大小。&#10;2：此功能是“实验功能”，部分页面可能不起作用" class="tipsButton">[?]</span>
 						</label>
-						<label class="h5"><input name="autoLightOn" type="checkbox">自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
+						<label class="h5"><input name="autoLightOn" type="checkbox"><span class="checkbox"></span>自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
             		</div>
             	</fieldset>
             </div>
@@ -2537,14 +2546,19 @@
 			}
 			//html5Player tips
 			var player = isPlayer();
+			var adjustPlayerMainIsHTML5 = document.querySelector('#adjustPlayerMainIsHTML5');
 			if (player === "html5Player") {
-				if (document.querySelector('#adjustPlayerMainIsHTML5') === null ) {
+				if (adjustPlayerMainIsHTML5 === null ) {
 					var css ='#adjust-player .h5 { color:#222 !important;}';
 					var node = document.createElement('style');
 					node.type = 'text/css';
 					node.id = 'adjustPlayerMainIsHTML5';
 					node.appendChild(document.createTextNode(css));
-					document.documentElement.appendChild(node);
+					document.body.appendChild(node);
+				}
+			} else {
+				if (adjustPlayerMainIsHTML5 !== null ) {
+					adjustPlayerMainIsHTML5.remove();
 				}
 			}
 		},
@@ -2588,11 +2602,6 @@
 				//autoVideoSpeed
 				if (formData.autoVideoSpeed === '1') {
 					delete formData.autoVideoSpeed;
-				}
-				//resizePlayer
-				if (formData.resizePlayer !== true ) {
-					delete formData.adjustPlayerWidth;
-					delete formData.adjustPlayerRatio;
 				}
 				//resizeMiniPlayer
 				if (formData.resizeMiniPlayer === true ) {
@@ -2708,7 +2717,7 @@
 				arcToolbarReport.remove();
 			}
 
-			document.querySelector('#adjust-player').setAttribute("style","visibility: hidden;");
+			document.querySelector('#adjust-player').setAttribute("style","display: none;");
 
 			//tips
 			var tips = document.createElement('div');
@@ -3133,15 +3142,19 @@
 				#adjust-player fieldset{border:1px solid #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
 				#adjust-player legend{font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
 				#adjust-player legend label span{color:#6d757a;font-size:12px}
-				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;height:24px;font-size:13px;margin:0 2px;outline:0;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
-				#adjust-player input[type="checkbox"]{width:15px;height:15px;margin:-4px 4px 0 4px}
-				#adjust-player input[type="checkbox"]::before{color:#99a2aa;border:1px solid #99a2aa;display:inline-block;width:14px;height:14px;background-color:#f4f5f7;border-radius:2px;content:" "}
-				#adjust-player input[type="checkbox"]:checked::before{color:#00a1d6;display:inline-block;width:14px;height:14px;border:0px;border-radius:2px;font-family:bilibili-iconfont;content:"\E629";font-size:16px}
+				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-appearance:unset!important;-moz-appearance:unset!important;appearance:unset!important;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
+				#adjust-player input[type="number"]{-webkit-appearance:textfield!important;-moz-appearance:menulist!important;appearance:textfield!important}
+				#adjust-player input[type="radio"]{-webkit-appearance:radio!important;-moz-appearance:radio!important;appearance:radio!important}
+				#adjust-player select{-webkit-appearance:menulist!important;-moz-appearance:menulist!important;appearance:menulist!important}
+				#adjust-player select,#adjust-player input[type="number"]{text-align-last:center;text-align:center;margin:0 2px;height:22px}
+				#adjust-player input[type="checkbox"]{visibility:hidden;width:14px;height:14px}
+				#adjust-player input[type="checkbox"]  + .checkbox{color:#99a2aa;border:1px solid #99a2aa;display:inline-block;width:14px;height:14px;background-color:#fff;border-radius:2px;content:" ";position:absolute;margin-top:5px;margin-left:-19px}
+				#adjust-player input[type="checkbox"]:checked  + .checkbox::before{visibility:visible;color:#00a1d6;display:inline-block;border:0px;border-radius:2px;font-family:bilibili-iconfont;content:"\E629";font-size:16px;position:absolute;margin-top:-6px;margin-left:-1px}
+				#adjust-player input[type="checkbox"]:checked  + .checkbox{visibility:hidden}
 				#adjust-player input[readOnly="true"]{color:#99a2aa;width:80px;max-width:80px;border:0px;background:#f4f5f7}
-				#adjust-player select{text-align-last:center;text-align:center}
 				#adjust-player .block{padding:5px 0}
 				#adjust-player .block .bold{font-weight:bold}
-				#adjust-player .block label{display:block;margin:2px 0 2px 10px;line-height:24px}
+				#adjust-player .block label{display:block;margin:2px 0 2px 19px;height:24px}
 				#adjust-player .tipsButton{font-size:12px;color:#00a1d6;cursor:pointer;padding:0 2px}
 				#adjust-player .left{float:left}
 				#adjust-player .right{float:right}
@@ -3156,7 +3169,7 @@
 				#adjust-player .btn-cancel{display:inline-block;text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
 				#adjust-player .btn-cancel:hover{color:#00a1d6;border-color:#00a1d6;background:#fff}
 				#adjust-player .h5{color:#ccc}
-				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap}
+				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap;position:relative}
 				#adjust-player .modalWindow{z-index:100000}
 				#adjust-player .shortcutsItem.disabled > label{color:#ccc!important}
 				#adjust-player-tips{width:100%;height:100%;line-height:16px;color:#333;overflow:auto;resize:horizontal;background:linear-gradient(135deg,#E6E7E8 0,#E6E7E8 99%,#fff 95%)}
@@ -3175,8 +3188,7 @@
 				#adjust-player-tips .tips-text{position:absolute;bottom:10px;margin-left:10px;color:#99a2aa}
 				#adjust-player-tips .drag-arrow{position:absolute;right:0}
 				.bgray-btn{height:auto!important;margin:10px 0px 0px 10px!important}
-				.fix-Resize-Height .bgray-btn-wrap{top:10px!important}
-				#v_top_gg{position:absolute}
+				#v_top_gg{display:none!important}
 			*/});
 			var node = document.createElement('style');
 			node.type = 'text/css';
@@ -3191,22 +3203,6 @@
 			var adjustPlayerMask = document.createElement('div');
 			adjustPlayerMask.className = 'adjust-player-mask';
 			document.querySelector('#adjust-player').appendChild(adjustPlayerMask);
-			//修复新番剧页面，设置界面不显示input控件
-			if (matchURL.isNewBangumi()) {
-				if (document.querySelector('#adjustPlayerFixNewBangumi') === null ) {
-					var css = [
-						'#adjust-player input[type="checkbox"] { -webkit-appearance: checkbox !important; -moz-appearance: checkbox !important; appearance: checkbox !important; }',
-						'#adjust-player input[type="number"] { -webkit-appearance: textfield !important; -moz-appearance: menulist !important; appearance: textfield !important; }',
-						'#adjust-player input[type="radio"] { -webkit-appearance: radio !important; -moz-appearance: radio !important; appearance: radio !important; }',
-						'#adjust-player select { -webkit-appearance: menulist !important; -moz-appearance: menulist !important; appearance: menulist !important; }',
-					];
-					var node = document.createElement('style');
-					node.type = 'text/css';
-					node.id = 'adjustPlayerFixNewBangumi';
-					node.appendChild(document.createTextNode(css.join('')));
-					document.documentElement.appendChild(node);
-				}
-			}
 		} catch (e) {
 			console.log('addStyle：'+e);
 		}
