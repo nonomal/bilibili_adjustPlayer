@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.49
+// @version     1.50
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -229,26 +229,25 @@
 		hideDanmukuFilterType: function (set,type) {
 			if (typeof set !== 'undefined') {
 				var hideDanmukuFilterType = function (ftype) {
-					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-panel .bilibili-player-danmaku-setting-lite-type-list div[ftype="'+ ftype +'"] ');
-					if (controlBtn !== null) {
-						if (controlBtn.getAttribute("name").search("on") !== -1) {
+					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-type-list .bilibili-player-block-filter-type[ftype='+ ftype +']');
+					if (controlBtn !== null){
+						doClick(controlBtn);
+						if (controlBtn.getAttribute("name") === "ctlbar_danmuku_"+ ftype +"_on") {
 							doClick(controlBtn);
 						}
 					}
 				};
 
 				if (typeof type !== 'undefined') {
-					var typelist  = document.querySelectorAll('.bilibili-player-danmaku-setting-lite-panel .bilibili-player-danmaku-setting-lite-type-list div[ftype] '), i;
-					///console.log(typelist);
-					for (i = 0; i < typelist.length; ++i) {
-						doClick(typelist[i]);
-					}
-					if(type === 'topAndbottom'){
-						hideDanmukuFilterType('top');
-						hideDanmukuFilterType('bottom');
-					} else {
-						hideDanmukuFilterType(type);
-					}
+					return new Promise (function(resolve, reject) {
+						if(type === 'topAndbottom'){
+							hideDanmukuFilterType('top');
+							hideDanmukuFilterType('bottom');
+						} else {
+							hideDanmukuFilterType(type);
+						}
+						resolve('hideDanmukuFilterType done');
+					});
 				}
 			}
 		},
@@ -258,19 +257,41 @@
 					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-panel input.bilibili-player-setting-preventshade + label');
 					if(controlBtn !== null) {
 						doClick(controlBtn);
-						window.setTimeout(function() {
-							if (type === "on") {
-								if (controlBtn.getAttribute("data-pressed") === "false") {
-									doClick(controlBtn);
+						return new Promise (function(resolve, reject) {
+							window.setTimeout(function() {
+								if (type === "on") {
+									if (controlBtn.getAttribute("data-pressed") === "false") {
+										doClick(controlBtn);
+									}
+								} else if (type === "off") {
+									if (controlBtn.getAttribute("data-pressed") === "true") {
+										doClick(controlBtn);
+									}
 								}
-							} else if (type === "off") {
-								if (controlBtn.getAttribute("data-pressed") === "true") {
-									doClick(controlBtn);
-								}
-							}
-						}, 800);
+							}, 800);
+							resolve('danmukuPreventShade done');
+						});
 					}
 				} catch (e) {console.log('danmukuPreventShade：'+e);}
+			}
+		},
+		danmakuSettingLitePanel: function (type) {
+			if (typeof type !== 'undefined') {
+				return new Promise (function(resolve, reject) {
+					var danmakuSettingLitePanel = function (type) {
+						var evt = document.createEvent('Event');
+						var panelSwitch = isBangumi('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
+						if(type === "show"){
+							evt.initEvent('mouseover', true, true);
+							panelSwitch.dispatchEvent(evt);
+						}else if(type === "hide"){
+							evt.initEvent('mouseout', true, true);
+							panelSwitch.dispatchEvent(evt);
+						}
+					};
+					danmakuSettingLitePanel(type);
+					resolve(type);
+				});
 			}
 		},
 		tabDanmulist: function (set) {
@@ -1742,14 +1763,26 @@
 										adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 									}
 
-									adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType);
-									adjustPlayer.tabDanmulist(setting.tabDanmulist);
-
 									//修复没开启“自动宽屏模式”自动关灯失效
 									window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
 
-									adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
-									adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type);
+									//“隐藏弹幕”最后执行
+									adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
+										if(value === "show"){
+											Promise.all([
+												adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
+												adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
+											]).then(function(values){
+												adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
+													if(value === "hide"){
+														adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
+													}
+												});
+											});
+										}
+									});
+
+									adjustPlayer.tabDanmulist(setting.tabDanmulist);
 									adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
 									adjustPlayer.autoPlay(setting.autoPlay,video);
 									adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);
@@ -1893,13 +1926,26 @@
 									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 								}
 
-								adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType);
-								adjustPlayer.tabDanmulist(setting.tabDanmulist);
-
 								//修复没开启“自动宽屏模式”自动关灯失效
 								window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
-								adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
-								adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type);
+
+								//“隐藏弹幕”最后执行
+								adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
+									if(value === "show"){
+										Promise.all([
+											adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
+											adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
+										]).then(function(values){
+											adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
+												if(value === "hide"){
+													adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
+												}
+											});
+										});
+									}
+								});
+
+								adjustPlayer.tabDanmulist(setting.tabDanmulist);
 								adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
 								window.setTimeout(function() {adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);}, 200);
 								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
