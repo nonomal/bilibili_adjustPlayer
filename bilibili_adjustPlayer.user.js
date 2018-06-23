@@ -406,27 +406,15 @@
 		},
 		autoVideoSpeed: function (set,video) {
 			if (typeof set !== 'undefined' && video !== null) {
-				switch (set) {
-					case "0.5":
-						video.playbackRate = 0.5;
-						break;
-					case "0.75":
-						video.playbackRate = 0.75;
-						break;
-					case "1":
-						break;
-					case "1.25":
-						video.playbackRate = 1.25;
-						break;
-					case "1.5":
-						video.playbackRate = 1.5;
-						break;
-					case "2":
-						video.playbackRate = 2;
-						break;
-					default:
-						break;
+				try {
+					var adjustPlayerVideoPlaybackRate = sessionStorage.getItem("adjustPlayer_videoPlaybackRate");
+					if (adjustPlayerVideoPlaybackRate !== null) {
+						video.playbackRate = parseFloat(adjustPlayerVideoPlaybackRate);
+						return;
+					}
+					video.playbackRate = parseFloat(set);
 				}
+				catch(e) {console.log('autoVideoSpeed：'+e);}
 			}
 		},
 		autoLightOn: function (set,type,callback) {
@@ -1116,6 +1104,7 @@
 								console.log("請不要把奇怪的東西插進來");
 								break;
 						}
+						sessionStorage.setItem("adjustPlayer_videoPlaybackRate", video.playbackRate);
 					}
 				},
 				playerWide : function () {
@@ -1533,9 +1522,11 @@
 
 							var shortcutsEventObj = {};
 							for (var prop in set) {
-								var KeyCode = prop.indexOf('KeyCode');
-								if(KeyCode !== -1 ){
-									shortcutsEventObj[set[prop]] = prop.replace(/KeyCode/gi, '');
+								if (set.hasOwnProperty(prop)) {
+									var KeyCode = prop.indexOf('KeyCode');
+									if(KeyCode !== -1 ){
+										shortcutsEventObj[set[prop]] = prop.replace(/KeyCode/gi, '');
+									}
 								}
 							}
 
