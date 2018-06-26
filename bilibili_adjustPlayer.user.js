@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.51
+// @version     1.52
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1650,6 +1650,14 @@
 							clearInterval(timer);
 						}
 					} else if (player === "html5Player") {
+
+						var stardustPlayer = document.querySelector('.stardust-player');
+						if (stardustPlayer !== null ){
+							clearInterval(timer);
+							console.log('adjustPlayer:\n新版播放器页面不支持\n  https://greasyfork.org/zh-CN/forum/discussion/39646/%E6%96%B0%E7%89%88%E6%92%AD%E6%94%BE%E5%99%A8%E9%A1%B5%E9%9D%A2');
+							return;
+						}
+
 						var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
 						var video = isBangumi('.bilibili-player-video video');
 						if (video !== null && readyState !== null ) {
