@@ -1,18 +1,12 @@
 // ==UserScript==
-// @name        哔哩哔哩（bilibili.com）播放器调整
-// @namespace   micky7q7
+// @name        哔哩哔哩（bilibili.com）播放器调整（ver.stardust）
+// @namespace   stardust
 // @author      mickey7q7
 // @license     MIT License
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
-// @include     http*://www.bilibili.com/watchlater/*
-// @include     http*://www.bilibili.com/bangumi/play/ep*
-// @include     http*://www.bilibili.com/bangumi/play/ss*
-// @include     http*://bangumi.bilibili.com/anime/*/play*
-// @include     http*://bangumi.bilibili.com/movie/*
-// @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.51
+// @version     stardust_1.0
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -20,16 +14,224 @@
 // @grant       unsafeWindow
 // @run-at      document-end
 // ==/UserScript==
+
 (function () {
 	'use strict';
 	var adjustPlayer = {
+		autoWidescreen: function (set,fullscreen) {
+			if (typeof set !== 'undefined') {
+				var autoWidescreen = function () {
+					var widescreenBtn = querySelectorFromIframe('i[name="widescreen"]');
+					if (widescreenBtn !== null) {
+						if (widescreenBtn.getAttribute('data-text') !== '退出宽屏') {
+							doClick(widescreenBtn);
+						}
+					}
+				};
+				var fixWidescreenFocusPlayer = function() {
+					var setting = window.adjustPlayerSetting;
+					var autoFocusPlayerOffsetType = setting.autoFocusPlayerOffsetType;
+					var autoFocusPlayerOffsetValue= setting.autoFocusPlayerOffsetValue;
+					unsafeWindow.$('div[name="widescreen"]').on("click", function(event){
+						setTimeout(function() {
+							adjustPlayer.autoFocusPlayer(true,autoFocusPlayerOffsetType,autoFocusPlayerOffsetValue,true);
+						}, 200);
+					});
+				};
+				fixWidescreenFocusPlayer();
+				autoWidescreen();
+
+				if (typeof fullscreen !== 'undefined' ) {
+					if (fullscreen === 'on') {
+						function fullscreenEvent(e) {
+							var element = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+							if(typeof element === 'undefined') {
+								autoWidescreen();
+							}
+						}
+						document.addEventListener("fullscreenchange", fullscreenEvent);
+						document.addEventListener("webkitfullscreenchange", fullscreenEvent);
+						document.addEventListener("mozfullscreenchange", fullscreenEvent);
+						document.addEventListener("MSFullscreenChange", fullscreenEvent);
+					}
+				}
+			}
+		},
+		autoFocusPlayer: function (set,offsetType,offsetValue,isShortcut) {
+			if (typeof set !== 'undefined') {
+				try{
+					var focusPlayer = function(){
+						setTimeout(function() {
+							var playerWrapper;
+							var scrollToY;
+							if (matchURL.isVideoAV()){
+								playerWrapper = document.querySelector('#bofqi.stardust-player');
+								scrollToY = playerWrapper.offsetTop;
+							}
+							if (typeof offsetValue !== 'undefined' && typeof offsetType !== 'undefined') {
+								if (offsetType === "add") {
+									scrollToY += offsetValue;
+								} else if (offsetType === "sub") {
+									scrollToY -= offsetValue;
+								}
+							}
+							if (typeof offsetValue === 'undefined') {
+								scrollToY -= 10;
+							}
+							var currentScrollToY = (window.pageYOffset || document.documentElement.scrollTop) - (document.documentElement.clientTop || 0);
+							var playerHeight = playerWrapper.offsetHeight;
+							var playerOffsetTop = playerWrapper.offsetTop;
+							if (currentScrollToY >= (playerHeight + playerOffsetTop) && isShortcut !== true) {
+								return;
+							} else {
+								unsafeWindow.scrollTo(0, scrollToY);
+							}
+						}, 200);
+					};
+					if (isShortcut) {
+						unsafeWindow.scrollTo(0,0);
+						focusPlayer();
+					} else {
+						focusPlayer();
+					}
+				} catch (e) {console.log('autoFocus：'+e);}
+			}
+		},
+		autoPlay: function (set,video) {
+			if (typeof set !== 'undefined' && video !== null) {
+				if (video.play) {
+					video.play();
+				}
+			}
+		},
+		hideDanmuku: function (set,type) {
+			if (typeof set !== 'undefined') {
+				var hideDanmuku = function () {
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
+					if (controlBtn !== null) {
+						doClick(controlBtn);
+					}
+				};
+
+				if (typeof type !== 'undefined') {
+					if (type === "all") {
+						hideDanmuku();
+					} else if (type === "bangumi") {
+						if (matchURL.isOldBangumi() || matchURL.isNewBangumi()) {
+							hideDanmuku();
+						}
+					}
+				} else {
+					hideDanmuku();
+				}
+			}
+		},
+		hideDanmukuFilterType: function (set,type) {
+			if (typeof set !== 'undefined') {
+				var hideDanmukuFilterType = function (ftype) {
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-left-block-content .bilibili-player-block-filter-type[ftype='+ ftype +']');
+					if (controlBtn !== null){
+						doClick(controlBtn);
+						if (controlBtn.getAttribute("name") === "ctlbar_danmuku_"+ ftype +"_on") {
+							doClick(controlBtn);
+						}
+					}
+				};
+
+				if (typeof type !== 'undefined') {
+					return new Promise (function(resolve, reject) {
+						if(type === 'topAndbottom'){
+							hideDanmukuFilterType('top');
+							hideDanmukuFilterType('bottom');
+						} else {
+							hideDanmukuFilterType(type);
+						}
+						resolve('hideDanmukuFilterType done');
+					});
+				}
+			}
+		},
+		danmukuPreventShade: function (set,type) {
+			if (typeof set !== 'undefined' && typeof type !== 'undefined') {
+				try{
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-left-preventshade input[type="checkbox"]:checked');
+					if(controlBtn === null) {
+						return new Promise (function(resolve, reject) {
+							setTimeout(function() {
+								var controlBtn = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-left-preventshade input[type="checkbox"]');
+								doClick(controlBtn);
+							}, 800);
+							resolve('danmukuPreventShade done');
+						});
+					}
+				} catch (e) {console.log('danmukuPreventShade：'+e);}
+			}
+		},
+		danmakuSettingLitePanel: function (type) {
+			if (typeof type !== 'undefined') {
+				return new Promise (function(resolve, reject) {
+					var danmakuSettingLitePanel = function (type) {
+						var evt = document.createEvent('Event');
+						var panelSwitch = querySelectorFromIframe('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
+						if(type === "show"){
+							evt.initEvent('mouseover', true, true);
+							panelSwitch.dispatchEvent(evt);
+						}else if(type === "hide"){
+							evt.initEvent('mouseout', true, true);
+							panelSwitch.dispatchEvent(evt);
+						}
+					};
+					danmakuSettingLitePanel(type);
+					resolve(type);
+				});
+			}
+		},
+		tabDanmulist: function (set) {
+			if (typeof set !== 'undefined') {
+				try{
+					var timerCount = 0;
+					var timer = window.setInterval(function callback() {
+						if (timerCount >= 20) {
+							clearInterval(timer);
+						}
+						timerCount++;
+						var controlBtn = querySelectorFromIframe('#danmukuBox .bui-collapse-header');
+						if(controlBtn !== null) {
+							var isFolded = querySelectorFromIframe('#danmukuBox .bui-collapse-wrap-folded');
+							if (isFolded !== null) {
+								doClick(controlBtn);
+								clearInterval(timer);
+							}
+						}
+					}, 200);
+				} catch (e) {console.log('tabDanmulist：'+e);}
+			}
+		},
+		autoLoopVideo: function (set) {
+			if (typeof set !== 'undefined') {
+				var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat > i');
+				if (controlBtn !== null) {
+					doClick(controlBtn);
+				}
+			}
+		},
+		autoWebFullScreen: function (set) {
+			if (typeof set !== 'undefined') {
+				var controlBtn = querySelectorFromIframe('.bilibili-player-video-web-fullscreen > i');
+				if (controlBtn !== null) {
+					if (controlBtn.getAttribute("data-text") === "网页全屏") {
+						doClick(controlBtn);
+					}
+				}
+			}
+		},
 		doubleClickFullScreen: function (set,delayed) {
 			if (typeof set !== 'undefined' && typeof delayed !== 'undefined') {
 				try{
 					if (delayed === 0 ) {
-						var video = isBangumi('.bilibili-player-video video');
+						var video = querySelectorFromIframe('.bilibili-player-video video');
 						video.addEventListener('dblclick', function () {
-							var fullScreenBtn = isBangumi('div[name="browser_fullscreen"]');
+							var fullScreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"]');
 							if (fullScreenBtn !== null) {
 								doClick(fullScreenBtn);
 							}
@@ -37,11 +239,11 @@
 					} else {
 						var videoParentNodeEvent = function() {
 							var dblclickTimer = null;
-							var videoParentNode = isBangumi('.bilibili-player-video');
+							var videoParentNode = querySelectorFromIframe('.bilibili-player-video');
 							videoParentNode.addEventListener('click', function () {
 								clearTimeout(this.dblclickTimer);
-								this.dblclickTimer = window.setTimeout(function() {
-									var playPauseBtn = isBangumi('.bilibili-player-video-control > div.bilibili-player-video-btn-start');
+								this.dblclickTimer = setTimeout(function() {
+									var playPauseBtn = querySelectorFromIframe('.bilibili-player-video-control > div.bilibili-player-video-btn-start');
 									if (playPauseBtn !== null) {
 										doClick(playPauseBtn);
 									}
@@ -50,7 +252,7 @@
 
 							videoParentNode.addEventListener('dblclick', function () {
 								clearTimeout(this.dblclickTimer);
-								var fullScreenBtn = isBangumi('div[name="browser_fullscreen"]');
+								var fullScreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"]');
 								if (fullScreenBtn !== null) {
 									doClick(fullScreenBtn);
 								}
@@ -86,325 +288,7 @@
 				} catch (e) {console.log('doubleClickFullScreen：'+e);}
 			}
 		},
-		autoWide: function (set,fullscreen) {
-			if (typeof set !== 'undefined') {
-				var player = isPlayer();
-				if (player === "flashPlayer") {
-					var flashPlayer = isBangumi('#bofqi');
-					var newPlayer = isBangumi('param[name="flashvars"]');
-					var oldPlayer = isBangumi('iframe[class="player"]');
-					if (flashPlayer.getAttribute('class') !== 'scontent wide') {
-						if (newPlayer !== null) {
-							newPlayer.value += '&as_wide=1';
-							flashPlayer.innerHTML = flashPlayer.innerHTML;
-						} else if (oldPlayer !== null) {
-							oldPlayer.src += '&as_wide=1';
-						}
-					}
-				} else if (player === "html5Player") {
-					var autoWidescreen = function () {
-						var widescreenBtn = isBangumi('i[name="widescreen"]');
-						if (widescreenBtn !== null) {
-							if (widescreenBtn.getAttribute('data-text') !== '退出宽屏') {
-								doClick(widescreenBtn);
-							}
-						}
-					};
-					autoWidescreen();
-
-					if (typeof fullscreen !== 'undefined' ) {
-						if (fullscreen === 'on') {
-							function fullscreenEvent(e) {
-								var element = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-								if(typeof element === 'undefined') {
-									autoWidescreen();
-								}
-							}
-							document.addEventListener("fullscreenchange", fullscreenEvent);
-							document.addEventListener("webkitfullscreenchange", fullscreenEvent);
-							document.addEventListener("mozfullscreenchange", fullscreenEvent);
-							document.addEventListener("MSFullscreenChange", fullscreenEvent);
-						}
-					}
-				}
-			}
-		},
-		autoFocus: function (set,type,value,position,shortcuts) {
-			if (typeof set !== 'undefined') {
-				try{
-					var scrollToY;
-					var currentScrollToY = (window.pageYOffset || document.documentElement.scrollTop) - (document.documentElement.clientTop || 0);
-					var playerHeight = document.querySelector('#bofqi .player').offsetHeight;
-
-					if (matchURL.isWatchlater() === true) {
-						scrollToY = document.querySelector('.video-box-module').offsetTop;
-					} else if (matchURL.isBangumiMovie() === true) {
-						var moviePlayWrapper = document.querySelector('.movie_play_wrapper');
-						scrollToY = moviePlayWrapper.offsetParent.offsetTop + moviePlayWrapper.offsetTop;
-					} else {
-						var oldPlayerWrapper= document.querySelector('.player-wrapper');
-						var newPlayerWrapper= document.querySelector('.player-box');
-						if(oldPlayerWrapper !== null) {
-							scrollToY = oldPlayerWrapper.offsetTop;
-						} else {
-							scrollToY = newPlayerWrapper.offsetTop;
-						}
-					}
-
-					if(shortcuts === true){
-						unsafeWindow.scrollTo(0, 0);
-					}
-
-					window.setTimeout(function() {
-						if (typeof position !== 'undefined' ) {
-							if (position === "video") {
-								if (matchURL.isWatchlater()) {
-									scrollToY = scrollToY + document.querySelector('#bofqi').offsetParent.offsetTop;
-								} else if (matchURL.isBangumiMovie()) {
-									scrollToY = scrollToY + document.querySelector('.movie_play').offsetTop - document.querySelector('.movie_play_wrapper').offsetTop;
-								} else if (matchURL.isNewBangumi()) {
-									scrollToY = scrollToY + document.querySelector('.bangumi-player').offsetTop;
-								} else {
-									scrollToY = scrollToY + document.querySelector('#bofqi').offsetTop;
-								}
-							}
-						}
-
-						if (typeof value !== 'undefined' && typeof type !== 'undefined') {
-							if (type === "add") {
-								scrollToY += value;
-							} else if (type === "sub") {
-								scrollToY -= value;
-							}
-						}
-
-						if((scrollToY <= (currentScrollToY - playerHeight)) && shortcuts !== true){
-							return;
-						} else {
-							unsafeWindow.scrollTo(0, scrollToY);
-						}
-
-					}, 200);
-
-				} catch (e) {console.log('autoFocus：'+e);}
-			}
-		},
-		autoPlay: function (set,video) {
-			if (typeof set !== 'undefined' && video !== null) {
-				var controlBtn = isBangumi('.bilibili-player-video-control div[name="pause_screen"]');
-				var playButton = isBangumi('i[name="play_button"]');
-				if (controlBtn === null) {
-					if (video.play) {
-						video.play();
-					} else {
-						doClick(playButton);
-					}
-				}
-			}
-		},
-		hideDanmuku: function (set,type) {
-			if (typeof set !== 'undefined') {
-				var hideDanmuku = function () {
-					var controlBtn = isBangumi('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
-					if (controlBtn !== null) {
-						doClick(controlBtn);
-					}
-				};
-
-				if (typeof type !== 'undefined') {
-					if (type === "all") {
-						hideDanmuku();
-					} else if (type === "bangumi") {
-						if (matchURL.isOldBangumi()) {
-							hideDanmuku();
-						} else if (matchURL.isNewBangumi()){
-							hideDanmuku();
-						}
-					}
-				} else {
-					hideDanmuku();
-				}
-			}
-		},
-		hideDanmukuFilterType: function (set,type) {
-			if (typeof set !== 'undefined') {
-				var hideDanmukuFilterType = function (ftype) {
-					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-type-list .bilibili-player-block-filter-type[ftype='+ ftype +']');
-					if (controlBtn !== null){
-						doClick(controlBtn);
-						if (controlBtn.getAttribute("name") === "ctlbar_danmuku_"+ ftype +"_on") {
-							doClick(controlBtn);
-						}
-					}
-				};
-
-				if (typeof type !== 'undefined') {
-					return new Promise (function(resolve, reject) {
-						if(type === 'topAndbottom'){
-							hideDanmukuFilterType('top');
-							hideDanmukuFilterType('bottom');
-						} else {
-							hideDanmukuFilterType(type);
-						}
-						resolve('hideDanmukuFilterType done');
-					});
-				}
-			}
-		},
-		danmukuPreventShade: function (set,type) {
-			if (typeof set !== 'undefined' && typeof type !== 'undefined') {
-				try{
-					var controlBtn = isBangumi('.bilibili-player-danmaku-setting-lite-panel input.bilibili-player-setting-preventshade + label');
-					if(controlBtn !== null) {
-						doClick(controlBtn);
-						return new Promise (function(resolve, reject) {
-							window.setTimeout(function() {
-								if (type === "on") {
-									if (controlBtn.getAttribute("data-pressed") === "false") {
-										doClick(controlBtn);
-									}
-								} else if (type === "off") {
-									if (controlBtn.getAttribute("data-pressed") === "true") {
-										doClick(controlBtn);
-									}
-								}
-							}, 800);
-							resolve('danmukuPreventShade done');
-						});
-					}
-				} catch (e) {console.log('danmukuPreventShade：'+e);}
-			}
-		},
-		danmakuSettingLitePanel: function (type) {
-			if (typeof type !== 'undefined') {
-				return new Promise (function(resolve, reject) {
-					var danmakuSettingLitePanel = function (type) {
-						var evt = document.createEvent('Event');
-						var panelSwitch = isBangumi('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
-						if(type === "show"){
-							evt.initEvent('mouseover', true, true);
-							panelSwitch.dispatchEvent(evt);
-						}else if(type === "hide"){
-							evt.initEvent('mouseout', true, true);
-							panelSwitch.dispatchEvent(evt);
-						}
-					};
-					danmakuSettingLitePanel(type);
-					resolve(type);
-				});
-			}
-		},
-		tabDanmulist: function (set) {
-			if (typeof set !== 'undefined') {
-				try{
-					var controlBtn = isBangumi('.bilibili-player-filter > div[name="tab_danmulist"]:not(.active)');
-					if(controlBtn !== null) {
-						window.setTimeout(function() {
-							doClick(controlBtn);
-						}, 200);
-					}
-				} catch (e) {console.log('tabDanmulist：'+e);}
-			}
-		},
-		autoNextPlist: function (set,video) {
-			if (typeof set !== 'undefined' && video !== null) {
-				try{
-					var nextPlist = function(){
-						if (isBangumi('.bilibili-player-video-btn-repeat > i').getAttribute("data-text") === "关闭洗脑循环") { return; }
-						var controlBtn = isBangumi('.bilibili-player-video-btn-next > i');
-						if (controlBtn !== null) {
-							doClick(controlBtn);
-						}
-					};
-					var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
-					if (matchURL.isVideoAV()) {
-						if(isBangumi('.bilibili-player-electric-panel') === null){
-							video.addEventListener('ended',function () {
-								nextPlist();
-							}, false);
-						} else {
-							var observer = new MutationObserver(function (records) {
-								records.map(function (record) {
-									var targetNode = record.target.getAttribute("class");
-									if (targetNode.search("video-state-pause") !== -1) {
-										var controlBtn = isBangumi('.bilibili-player-electric-panel');
-										if (controlBtn !== null) {
-											nextPlist();
-											observer.disconnect();
-										}
-									}
-								});
-							});
-							observer.observe(document.querySelector('#bofqi .bilibili-player-area'), {
-								attributes: true,
-								attributeFilter:['class'],
-								childList: true
-							});
-						}
-					} else if (matchURL.isOldBangumi() || matchURL.isNewBangumi()) {
-						if(isBangumi('.bilibili-player-bangumipay-panel') === null){
-							video.addEventListener('ended',function () {
-								nextPlist();
-							}, false);
-						} else {
-							var observer = new MutationObserver(function (records) {
-								records.map(function (record) {
-									var targetNode = record.target.getAttribute("style");
-									if (targetNode.search("display: block;") !== -1) {
-										nextPlist();
-										observer.disconnect();
-									}
-								});
-							});
-							observer.observe(document.querySelector('#bofqi .bilibili-player-bangumipay-panel'), {
-								attributes: true,
-								attributeFilter:['style'],
-								childList: true
-							});
-						}
-					}
-				} catch (e) {console.log('autoNextPlist：'+e);}
-			}
-		},
-		autoLoopVideo: function (set) {
-			if (typeof set !== 'undefined') {
-				var controlBtn = isBangumi('.bilibili-player-video-btn-repeat > i');
-				if (controlBtn !== null) {
-					doClick(controlBtn);
-				}
-			}
-		},
-		autoWebFullScreen: function (set) {
-			if (typeof set !== 'undefined') {
-				var controlBtn = isBangumi('.bilibili-player-video-web-fullscreen > i');
-				if (controlBtn !== null) {
-					if (controlBtn.getAttribute("data-text") === "网页全屏") {
-						doClick(controlBtn);
-					}
-				}
-			}
-		},
-		autoFullScreen: function (set,video) {
-			if (typeof set !== 'undefined') {
-				try{
-					var fullScreen = function() {
-						var controlBtn = isBangumi('div[name="browser_fullscreen"] > i[data-text="进入全屏"]');
-						if (controlBtn !== null) {
-							doClick(controlBtn);
-						}
-					};
-					fullScreen();
-					document.addEventListener("keydown", function(e) {
-						if (e.keyCode == 122) {
-							fullScreen();
-							return false;
-						}
-					}, false);
-				}
-				catch(e) {console.log('autoFullScreen：'+e);}
-			}
-		},
-		autoVideoSpeed: function (set,video) {
+		autoVideoSpeed: function (set,speed,video) {
 			if (typeof set !== 'undefined' && video !== null) {
 				try {
 					var adjustPlayerVideoPlaybackRate = sessionStorage.getItem("adjustPlayer_videoPlaybackRate");
@@ -412,7 +296,7 @@
 						video.playbackRate = parseFloat(adjustPlayerVideoPlaybackRate);
 						return;
 					}
-					video.playbackRate = parseFloat(set);
+					video.playbackRate = parseFloat(speed);
 				}
 				catch(e) {console.log('autoVideoSpeed：'+e);}
 			}
@@ -420,7 +304,7 @@
 		autoLightOn: function (set,type,callback) {
 			if (typeof set !== 'undefined') {
 				try{
-					var isActiveContextMenu = isBangumi('.bilibili-player-context-menu-container.black');
+					var isActiveContextMenu = querySelectorFromIframe('.bilibili-player-context-menu-container.black');
 					if (isActiveContextMenu !== null && isActiveContextMenu.getAttribute("class").search("active") !== -1) {
 						return;
 					}
@@ -463,8 +347,8 @@
 						}
 						timerCount++;
 
-						contextMenuClick(isBangumi('.bilibili-player-area > .bilibili-player-video-wrap'));
-						var status = clickLightOnOff(isBangumi('.bilibili-player-context-menu-container'));
+						contextMenuClick(querySelectorFromIframe('.bilibili-player-area > .bilibili-player-video-wrap'));
+						var status = clickLightOnOff(querySelectorFromIframe('.bilibili-player-context-menu-container'));
 						heimuDblclickEvent();
 						if(type === "ON" || typeof type === 'undefined') {
 							if(status === "关灯") {
@@ -483,207 +367,140 @@
 				catch(e) {console.log('autoLightOn：'+e);}
 			}
 		},
-		resizePlayer: function (set,width,ratio) {
+		resizePlayer: function (set,width,ratio,isAutohideControlbar) {
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				try{
-					if (typeof ratio === 'undefined') {
-						ratio = '16 / 9';
-					}
-					var css = [
-						'.bgray-btn-wrap { margin-left: calc('+ width +' / 2) !important; } ',
-						'.player-wrapper .player-content, .video-box-module .bili-wrapper , .moviescontent, .widescreen .movie_play, #bofqi { width: '+ width +' !important; } ',
-						'#bofqi .player, .moviescontent { width: '+ width +' !important; height: calc(48px + '+ width +' / calc('+ ratio +') - 300px / calc('+ ratio +') + 68px) !important; } ',
-						'#bofqi.wide .player, .wide.moviescontent { width: '+ width +' !important; height: calc('+ width +' / calc('+ ratio +') + 68px) !important; } ',
-						'.player-wrapper .bangumi-player, #__bofqi.bili-wrapper { width: '+ width +' !important; background: none !important; height: auto !important;} ',
-						'#__bofqi.bili-wrapper { min-height: unset !important; } ',
-						'.bangumi-player.fix-Resize-Height { position: static !important; } ',
-						'.fix-Resize-Height .bgray-btn-wrap { top:10px !important; }',
-						'#bofqi.wide .autohide-controlbar, .wide.autohide-controlbar-movies { width: '+ width +' !important; height: calc('+ width +' / calc('+ ratio +') + 0px) !important; } '
-					];
-					var node = document.createElement('style');
-					node.type = 'text/css';
-					node.id = 'adjustPlayerSize';
+					var resizePlayer = function() {
+						reloadPList.getScreenMode();
+						var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+						var playerCustomWidth = width + 'px';
+						var playerNormalModeWidth = 'calc('+ playerCustomWidth +' - 350px - 30px )';
+						var playerMarginTop = 'calc(0px + 50px + 20px)';
+						var playerBottomBarHeight = isAutohideControlbar && screenMode === 'widescreen' ?  playerBottomBarHeight = '0px' : playerBottomBarHeight = '68px';
+						var playerNormalModeHeight = 'calc( '+ playerNormalModeWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +')';
 
-					var player = isPlayer();
-					if (player === "flashPlayer") {
-						//修复 flash 播放器 网页全屏挤在左上角
-						css.push(
-							'body[style$="position: fixed; width: 100%; height: 100%; padding: 0px; margin: 0px;"] #bofqi .player{ width: 100% !important; height: 100% !important; } ',
-							'body[style$="position: fixed; width: 100%; height: 100%; padding: 0px; margin: 0px;"] .player-wrapper .player-content ,body[style$="position: fixed; width: 100%; height: 100%; padding: 0px; margin: 0px;"] #bofqi { width: 100% !important; } '
-						);
-
-						if (isBangumi('#adjustPlayerSize')) {
-							return;
-						} else {
-							node.appendChild(document.createTextNode(css.join('')));
-							document.documentElement.appendChild(node);
+						var css = [''];
+						if (screenMode === "normal") {
+							css = [
+								'@media (min-width: '+ playerCustomWidth +' ) {',
+								'#bofqi:not(.mini-player).stardust-player {',
+								'    width: '+ playerCustomWidth +' !important; ',
+								'    height: '+ playerNormalModeHeight +' !important; ',
+								'    margin-left: 0 !important;',
+								'    left: calc(50% - '+ playerCustomWidth +' / 2) !important; ',
+								'    top: '+ playerMarginTop +' !important;',
+								'    background: none !important;',
+								'    pointer-events: none;',
+								'}',
+								'#bofqi:not(.mini-player).stardust-player .player{',
+								'    width: '+ playerNormalModeWidth +' !important; ',
+								'    height: '+ playerNormalModeHeight +' !important; ',
+								'    pointer-events: none;',
+								'}',
+								'#playerWrap { display:none !important; }',
+								'.v-wrap  { width: '+ playerCustomWidth +' !important; margin: 0 auto !important; }',
+								'.v-wrap .l-con { width: calc(100% - 350px - 30px) !important; }',
+								'.v-wrap .r-con { width: 350px !important; }',
+								'.v-wrap .l-con , .v-wrap .r-con { margin-top:calc('+ playerNormalModeHeight +' + '+ playerMarginTop +' ) !important; }',
+								'#danmukuBox {position: absolute !important; top: '+ playerMarginTop +' !important; height: '+ playerNormalModeHeight +' !important; }',
+								'}'
+							];
+						} else if (screenMode === "widescreen") {
+							css = [
+								'@media (min-width: '+ playerCustomWidth +' ) {',
+								'#bofqi:not(.mini-player).stardust-player {',
+								'    width: '+ playerCustomWidth +' !important; ',
+								'    height: calc( '+ playerCustomWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +') !important; ',
+								'    margin-left: 0 !important;',
+								'    left: calc(50% - '+ playerCustomWidth +' / 2) !important; ',
+								'    top: '+ playerMarginTop +' !important;',
+								'}',
+								'#playerWrap { display:none !important; }',
+								'.v-wrap  { width: '+ playerCustomWidth +' !important; margin: 0 auto !important; }',
+								'.v-wrap .l-con { width: calc(100% - 350px - 30px) !important; }',
+								'.v-wrap .r-con { width: 350px !important; }',
+								'.v-wrap .l-con , .v-wrap .r-con { margin-top:calc('+ playerCustomWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +' + '+ playerMarginTop +' ) !important; }',
+								'#danmukuBox { position: absolute !important; top: '+ playerMarginTop +' !important; height: '+ playerNormalModeHeight +' !important; }',
+								'}'
+							];
 						}
-					} else if (player === "html5Player") {
-						var fixResize= function(){
-							//修复内间距导致的 “黑边”
-							isBangumi('.bilibili-player-video video').parentNode.setAttribute("style","padding: 0px !important;");
+						var node = document.createElement('style');
+						node.type = 'text/css';
+						node.id = 'adjustPlayerSize';
+						var adjustMiniPlayerSizeCSS = document.querySelector('#adjustPlayerSize');
+						if (adjustMiniPlayerSizeCSS !== null) {
+							adjustMiniPlayerSizeCSS.remove();
+						}
+						node.appendChild(document.createTextNode(css.join('')));
+						document.documentElement.appendChild(node);
 
-							//修复 Firefox 下bangumi 页弹幕框消失
-							isBangumi('.bilibili-player-video-inputbar').setAttribute("style","float:none !important;");
-
-							//修复“自动宽屏模式” 没有勾选，会无法调整大小
+						//修复高度不正确
+						setTimeout(function() {
+							clearTimeout(this.resizeTimer);
 							var evt = document.createEvent('Event');
 							evt.initEvent('resize', true, true);
-							isBangumi('.bilibili-player-video video').dispatchEvent(evt);
+							querySelectorFromIframe('.bilibili-player-video video').dispatchEvent(evt);
+						},800);
 
-							//修复播放器尺寸调整过小，分级切换按钮被挡住
-							if (matchURL.isVideoAV()) {
-								var vPartToggle = document.querySelector('#v_multipage a.item.v-part-toggle');
-								if(vPartToggle !== null){
-									var bgrayBtnWrap = document.querySelector('.bgray-btn-wrap');
-									var multiPageWidth = document.querySelector('#v_multipage').offsetWidth;
-									if(parseInt(multiPageWidth) >= parseInt(width)){
-										bgrayBtnWrap.setAttribute("style","margin-left:calc("+ multiPageWidth +"px / 2) !important;");
-									}
+						//普通模式下超过最小高度不调整
+						if (screenMode === "normal") {
+							var videoHeight = document.querySelector('#bofqi:not(.mini-player).stardust-player').offsetHeight;
+							//console.log(videoHeight);
+							if(videoHeight <= 416){
+								var adjustMiniPlayerSizeCSS = document.querySelector('#adjustPlayerSize');
+								if (adjustMiniPlayerSizeCSS !== null) {
+									adjustMiniPlayerSizeCSS.remove();
 								}
 							}
-							//修复播放器尺寸调整过小，稍后观看页面工具条没有居中
-							if (matchURL.isWatchlater()) {
-								var toolbar = document.querySelector('.video-box-module .video-toolbar-module');
-								var toolbarWidth = toolbar.offsetWidth;
-								if(toolbar !== null){
-									if(parseInt(toolbarWidth) >= parseInt(width)){
-										toolbar.setAttribute("style","margin-left:calc(50% - calc("+ toolbarWidth +"px /2)) !important;");
-									}
-								}
-							}
-						};
-						if (isBangumi('#adjustPlayerSize')) {
-							fixResize();
-							return;
-						} else {
-							node.appendChild(document.createTextNode(css.join('')));
-							document.documentElement.appendChild(node);
-							fixResize();
-						}
-					}
-
-					var fixResizeHeight = function(){
-						//修复番剧页拉下页面后出现页面缩上去的bug
-						if (matchURL.isOldBangumi() || matchURL.isNewBangumi()) {
-							var bangumiPlayerWrapper = document.querySelector('#bangumi_player.player-wrapper');
-							var bofqi = document.querySelector('#bofqi');
-							if (bangumiPlayerWrapper !== null) {
-								var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
-								var fixMinHeight = function(bofqi){
-									if (player === "flashPlayer") {
-										if (!bofqi.classList.contains('wide')) {
-											bangumiPlayerWrapper.style.minHeight='calc(48px + '+ width +' / calc('+ ratio +') - 300px / calc('+ ratio +') + 68px)';
-										}
-										else {
-											bangumiPlayerWrapper.style.minHeight='calc('+ width +' / calc('+ ratio +') + 0px)';
-										}
-									} else if (player === "html5Player") {
-										if (!bofqi.classList.contains('wide')) {
-											bangumiPlayerWrapper.style.minHeight='calc(48px + '+ width +' / calc('+ ratio +') - 300px / calc('+ ratio +') + 68px)';
-										}
-										else if (!bofqi.querySelector('.player').classList.contains('autohide-controlbar')){
-											bangumiPlayerWrapper.style.minHeight='calc('+ width +' / calc('+ ratio +') + 68px)';
-										}
-										else {
-											bangumiPlayerWrapper.style.minHeight='calc('+ width +' / calc('+ ratio +') + 0px)';
-										}
-									}
-								};
-								new MutationObserver(function(records) {
-									records.map(function (record) {
-										fixMinHeight(record.target);
-									});
-								}).observe(bofqi, {
-									attributes: true,
-									attributeFilter: ['class']
-								});
-								fixMinHeight(bofqi);
-							}
-							//重写迷你播放器滚动事件
-							var fixMiniPlayerScrollEvent = function(){
-								var last_known_scroll_position = 0;
-								var ticking = false;
-								var bangumiPlayer = document.querySelector('#bangumi_player .bangumi-player');
-								var pos = document.querySelector('#bangumi_detail').offsetTop;
-								window.addEventListener('scroll', function(e) {
-									last_known_scroll_position = window.scrollY;
-									if (!ticking) {
-										window.requestAnimationFrame(function() {
-											var bangumiPlayerStyle = bangumiPlayer.getAttribute('style');
-											if (last_known_scroll_position >= pos) {
-												if(bangumiPlayerStyle === null || bangumiPlayerStyle === '') {
-													bangumiPlayer.setAttribute('class','bangumi-player fix-Resize-Height');
-												} else {
-													bangumiPlayer.setAttribute('class','bangumi-player mini-player');
-												}
-											}
-											else {
-												bangumiPlayer.setAttribute('class','bangumi-player fix-Resize-Height');
-											}
-											ticking = false;
-										});
-									}
-									ticking = true;
-								});
-							};
-							fixMiniPlayerScrollEvent();
 						}
 					};
-					var fixResizeGotop = function(){
-						//修复播放器尺寸设置过大时，被其他浮动元素遮挡
-						var gotop;
-						if (matchURL.isVideoAV()) {
-							var oldNav= document.querySelector('#index_nav');
-							var newNav= document.querySelector('.fixed-nav-m');
-							if(oldNav !== null) {
-								gotop = oldNav;
-							} else {
-								gotop = newNav;
-							}
-						} else if (matchURL.isNewBangumi()) {
-							gotop = document.querySelector('.bangumi-nav-right');
-						} else if (matchURL.isOldBangumi()) {
-							gotop = document.querySelector('#index_nav');
-						} else if (matchURL.isWatchlater()) {
-							gotop = document.querySelector('.fixed-nav-m');
+					var fixMiniPlayer = function() {
+						var observerPlayerElement = document.querySelector('#bofqi');
+						var isMiniPlayer;
+						if (observerPlayerElement.getAttribute("class").search("mini-player") !== -1) {
+							isMiniPlayer = true;
+						} else {
+							isMiniPlayer = false;
 						}
-						if (gotop !== null) {
-							var position = getScrollEventElement();
-							if (typeof position !== 'undefined' && position !== null ) {
-								var scrollEvent = function(scroll_position){
-									if (scroll_position >= position.offsetTop) {
-										if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === false) {
-											window.isGotopVisibility = true;
-											gotop.style.visibility = "visible";
-										}
+						var initResize = function(isMiniPlayer) {
+							if (!isMiniPlayer) {
+								resizePlayer();
+							}
+						};
+						var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+						var observer = new MutationObserver(function (records) {
+							records.map(function(record){
+								var resizeTimer;
+								resizeTimer = setTimeout(function() {
+									clearTimeout(this.resizeTimer);
+									if(record.target.getAttribute("class").search("mini-player") !== -1) {
+										isMiniPlayer = true;
 									} else {
-										if(typeof window.isGotopVisibility === 'undefined' || window.isGotopVisibility === true) {
-											window.isGotopVisibility = false;
-											gotop.style.visibility = "hidden";
-										}
+										isMiniPlayer = false;
 									}
-								};
-								var last_known_scroll_position = 0;
-								var ticking = false;
-								window.addEventListener('scroll', function(e) {
-									last_known_scroll_position = window.scrollY;
-									if (!ticking) {
-										window.requestAnimationFrame(function() {
-											scrollEvent(last_known_scroll_position);
-											ticking = false;
-										});
-									}
-									ticking = true;
-								});
-								scrollEvent(window.scrollY);
+									//console.log(isMiniPlayer);
+									initResize(isMiniPlayer);
+								}, 200);
+							});
+						});
+						observer.observe(observerPlayerElement, {
+							attributes: true,
+							attributeFilter: ['class']
+						});
+
+					};
+					var player = isPlayer();
+					if (player === "html5Player") {
+						setTimeout(function() {
+							if (document.querySelector('#adjustPlayerSize') !== null) {
+								fixMiniPlayer();
+								return;
+							} else {
+								resizePlayer();
+								fixMiniPlayer();
 							}
-						}
+						}, 0);
 					}
-					window.setTimeout(function() {
-						fixResizeHeight();
-						fixResizeGotop();
-					}, 200);
 				} catch (e) {console.log('resizePlayer：'+e);}
 			}
 		},
@@ -691,10 +508,8 @@
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				var resize = function() {
 					var css = [
-						'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ width +'px !important; height: calc('+ width +'px / calc(16 / 9)) !important; }',
-						'.bangumi-player.mini-player > .bgray-btn-wrap , .bangumi-player.mini-player:before, #bofqi.mini-player:before { display:none !important; }',
-						'#viewlater-app .bilibili-player-video-wrap.mini-player .bilibili-player-video-danmaku { height:calc(100% - 30px); top:30px; }',
-						'#adjust-player-miniplayer-resizable { width: '+ width +'px ; height: calc('+ width +'px / calc(16 / 9)) !important; position: absolute; top: 30px; z-index: 0; overflow: hidden; resize: both; min-height:100px; min-width:100px; }',
+						'#bofqi.mini-player, #bofqi.mini-player:before , #bofqi.mini-player .player { width: '+ width +'px !important; height: calc('+ width +'px / calc(16 / 9)) !important; }',
+						'#adjust-player-miniplayer-resizable { width: '+ width +'px ; height: calc('+ width +'px / calc(16 / 9)) !important; position: absolute; top: 0px; z-index: 0; overflow: hidden; resize: both; min-height:100px; min-width:100px; }',
 						'#adjust-player-miniplayer-resizable.show,#adjust-player-miniplayer-resizable.show .drag { display:block !important; }',
 						'.newfloat #adjust-player-miniplayer-resizable, .mini-player #adjust-player-miniplayer-resizable { z-index: 10000; }'
 					];
@@ -729,10 +544,8 @@
 
 						var dragEvent = function(width,height){
 							var css = [
-								'#viewlater-app .bilibili-player-video-wrap.mini-player,#bangumi_player .bilibili-player-video-wrap,#bangumi_player .bangumi-player.mini-player .player, #bangumi_player .bangumi-player.mini-player , .bangumi-player.mini-player > #bofqi, #bofqi.mini-player .player, #bofqi.mini-player, #bofqi.mini-player .bilibili-player-video-wrap { width: '+ width +'px !important; height: '+ height +'px !important; }',
-								'.bangumi-player.mini-player > .bgray-btn-wrap , .bangumi-player.mini-player:before, #bofqi.mini-player:before { display:none !important; }',
-								'#viewlater-app .bilibili-player-video-wrap.mini-player .bilibili-player-video-danmaku { height:calc(100% - 30px); top:30px; }',
-								'#adjust-player-miniplayer-resizable { position: absolute; top: 30px; z-index: 1; overflow: hidden; resize: both; min-height:100px; min-width:100px;width: '+ width +'px; height: '+ height +'px; }',
+								'#bofqi.mini-player, #bofqi.mini-player:before , #bofqi.mini-player .player { width: '+ width +'px !important; height: '+ height +'px !important; }',
+								'#adjust-player-miniplayer-resizable { position: absolute; top: 0; z-index: 1; overflow: hidden; resize: both; min-height:100px; min-width:100px;width: '+ width +'px; height: '+ height +'px; }',
 								'#adjust-player-miniplayer-resizable.show,#adjust-player-miniplayer-resizable.show .drag { display:block !important; }',
 								'.newfloat #adjust-player-miniplayer-resizable, .mini-player #adjust-player-miniplayer-resizable { z-index: 10000; }',
 							];
@@ -843,7 +656,7 @@
 						clearTimeout(this.scrollResizeTimer);
 						var evt = document.createEvent('Event');
 						evt.initEvent('resize', true, true);
-						isBangumi('.bilibili-player-video video').dispatchEvent(evt);
+						querySelectorFromIframe('.bilibili-player-video video').dispatchEvent(evt);
 					}, 200);
 				};
 
@@ -909,7 +722,7 @@
 		autoHideControlBar: function (set,focusDanmakuInput,video) {
 			if (typeof set !== 'undefined') {
 				try{
-					if (isBangumi('#adjustPlayerAutoHideControlBar')) {return;}
+					if (querySelectorFromIframe('#adjustPlayerAutoHideControlBar')) {return;}
 
 					//伪修复 macOS 下 Chrome 透明度失效 https://greasyfork.org/zh-CN/forum/discussion/30243/x
 					var fixSendbarOpacity = function(){
@@ -922,7 +735,7 @@
 						return opacity;
 					};
 
-					//开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，鼠标移动到弹幕框时不显示“弹幕框” https://greasyfork.org/zh-CN/forum/post/quote/30243/Comment_42612
+					//开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，鼠标移动到弹幕框时不显示“弹幕框”
 					var isFocusDanmakuInput = function(){
 						var css = '';
 						if (focusDanmakuInput) {
@@ -931,7 +744,8 @@
 						return css;
 					};
 
-					var css = [ //Modify the https://userstyles.org/styles/131642/bilibili-html5
+					var css = [
+						//https://userstyles.org/styles/131642/bilibili-html5
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-wrap, #bilibiliPlayer.mode-widescreen .bilibili-player-video-wrap { height: 100% !important; width: 100% !important; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control { opacity: 0 !important; transition: 0.2s; position: absolute; bottom: 0px; }',
 						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control:hover { opacity: '+ fixSendbarOpacity() +' !important; }',
@@ -947,23 +761,17 @@
 					node.type = 'text/css';
 					node.id = 'adjustPlayerAutoHideControlBar';
 					node.appendChild(document.createTextNode(css.join('')));
-					isBangumi('.player').appendChild(node);
-					document.querySelector('#bofqi > .player').classList.add("autohide-controlbar");
-
-					//修复“番剧电影”页面结构不一致导致的“白边”
-					if (matchURL.isBangumiMovie()) {
-						document.querySelector('.moviescontent').classList.add("autohide-controlbar-movies");
-					}
+					querySelectorFromIframe('.player').appendChild(node);
 
 					//进行快进(退)操作时弹出进度条
 					video.addEventListener("seeking", function() {
-						var controlBar = isBangumi('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
+						var controlBar = querySelectorFromIframe('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
 						if (controlBar !== null ) {
 							controlBar.style = "opacity: 1 !important;";
 							var timer = null;
 							clearTimeout(this.timer);
-							this.timer = window.setTimeout(function() {
-								var controlBar = isBangumi('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
+							this.timer = setTimeout(function() {
+								var controlBar = querySelectorFromIframe('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
 								if (controlBar !== null ) {
 									controlBar.style = "opacity: 0;";
 								}
@@ -998,7 +806,7 @@
 		shortcuts : function (set) {
 			var shortcut = {
 				playPause : function () {
-					var video = isBangumi('.bilibili-player-video video');
+					var video = querySelectorFromIframe('.bilibili-player-video video');
 					if (video !== null) {
 						if (!video.paused) {
 							doClick(video);
@@ -1010,20 +818,20 @@
 					}
 				},
 				videoFramerate : function (type) {
-					var video = isBangumi('.bilibili-player-video video');
+					var video = querySelectorFromIframe('.bilibili-player-video video');
 					var framerate = 24;
 					if (video !== null) {
-						var contextMenu = isBangumi('.bilibili-player-area > .bilibili-player-video-wrap');
+						var contextMenu = querySelectorFromIframe('.bilibili-player-area > .bilibili-player-video-wrap');
 						contextMenuClick(contextMenu);
 
-						var controlBtn = isBangumi('.bilibili-player-context-menu-container');
+						var controlBtn = querySelectorFromIframe('.bilibili-player-context-menu-container');
 						if (controlBtn !== null) {
 							var contextMenuItem = controlBtn.querySelectorAll('li > a'), i;
 							for (i = 0; i < contextMenuItem.length; ++i) {
 								if (contextMenuItem[i].innerHTML === "视频统计信息") {
 									doClick(contextMenuItem[i]);
-									doClick(isBangumi('a.bilibili-player-video-info-close'));
-									var fps = isBangumi('.bilibili-player-video-info-panel > div[data-name="fps"] .info-data');
+									doClick(querySelectorFromIframe('a.bilibili-player-video-info-close'));
+									var fps = querySelectorFromIframe('.bilibili-player-video-info-panel > div[data-name="fps"] .info-data');
 									fps = parseFloat(fps.innerHTML);
 									if(isNaN(fps)){
 										framerate = fps;
@@ -1034,7 +842,7 @@
 						}
 						//var currentFrame = Math.floor(video.currentTime * framerate);
 						if (!video.paused) {
-							var video = isBangumi('.bilibili-player-video');
+							var video = querySelectorFromIframe('.bilibili-player-video');
 							doClick(video);
 						}
 						if (type === "prev") {
@@ -1047,8 +855,8 @@
 					}
 				},
 				showHideDanmuku : function () {
-					var controlBtn = isBangumi('.bilibili-player-video-control .bilibili-player-video-btn-danmaku ');
-					var settingPanel = isBangumi('.bilibili-player-danmaku-setting-lite-panel');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-control .bilibili-player-video-btn-danmaku ');
+					var settingPanel = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-wrap');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 						settingPanel.style.display = "none";
@@ -1065,7 +873,7 @@
 					}
 				},
 				videoSpeed : function (type) {
-					var video = isBangumi('.bilibili-player-video video');
+					var video = querySelectorFromIframe('.bilibili-player-video video');
 					if (video !== null) {
 						var videoSpeed = video.playbackRate;
 						var speed = [0.25,0.5,0.75,1,1.25,1.5,2,3,4,6,8,12,16];
@@ -1108,8 +916,8 @@
 					}
 				},
 				playerWide : function () {
-					var controlBtn = isBangumi('i[name="widescreen"]');
-					var fullscreenBtn = isBangumi('div[name="browser_fullscreen"] > i');
+					var controlBtn = querySelectorFromIframe('i[name="widescreen"]');
+					var fullscreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"] > i');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
@@ -1127,7 +935,7 @@
 					}
 				},
 				fullscreen : function () {
-					var controlBtn = isBangumi('div[name="browser_fullscreen"] > i');
+					var controlBtn = querySelectorFromIframe('div[name="browser_fullscreen"] > i');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
@@ -1143,7 +951,7 @@
 					}
 				},
 				webfullscreen : function () {
-					var controlBtn = isBangumi('.bilibili-player-video-web-fullscreen > i');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-web-fullscreen > i');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
@@ -1159,54 +967,44 @@
 					}
 				},
 				gotoPlist : function (type) {
-					var video = isBangumi('.bilibili-player-video video');
+					var video = querySelectorFromIframe('.bilibili-player-video video');
 					if (video !== null) {
 						var plist,nextPlist,prevPlist,curPage;
 						if (matchURL.isVideoAV()) {
-							plist = document.querySelector('#v_multipage');
-							curPage = document.querySelector('#v_multipage a.item.on');
+							plist = document.querySelector('#multi_page');
+							curPage = document.querySelector('#multi_page .cur-list .on');
 							if (curPage !== null ) {
 								nextPlist = curPage.nextElementSibling;
 								prevPlist = curPage.previousElementSibling;
-							}
-
-						} else if (matchURL.isOldBangumi()) {
-							plist = document.querySelector('ul.slider-list');
-							curPage = document.querySelector('.video-slider-list-wrapper ul.slider-list .cur');
-							if (curPage !== null ) {
-								nextPlist = curPage.nextElementSibling;
-								prevPlist = curPage.previousElementSibling;
-							}
-
-						} else if (matchURL.isWatchlater()) {
-							plist = document.querySelector('.bilibili-player .mCSB_container > ul');
-							curPage = document.querySelector('.bilibili-player .mCSB_container > ul li[data-state-play=true]');
-							if (curPage !== null ) {
-								if (curPage.nextElementSibling !== null) {
-									nextPlist = curPage.nextElementSibling.querySelector('div');
-								}
-								if (curPage.previousElementSibling !== null) {
-									prevPlist = curPage.previousElementSibling.querySelector('div');
-								}
-							}
-						} else if (matchURL.isNewBangumi()) {
-							plist = document.querySelector('.bangumi-list-wrapper .bottom-block .episode-list');
-							curPage = document.querySelector('.bangumi-list-wrapper .bottom-block .episode-list > .episode-item.on');
-							if (curPage !== null ) {
-								if (curPage.nextElementSibling !== null) {
-									nextPlist = curPage.nextElementSibling;
-								}
-								if (curPage.previousElementSibling !== null) {
-									prevPlist = curPage.previousElementSibling;
-								}
 							}
 						}
 						if (type === "prev") {
-							if (typeof plist !== 'undefined' && typeof prevPlist !== 'undefined' && prevPlist !== null) {
-								var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
+							if (typeof plist !== 'undefined' && plist !== null ) {
+								if (matchURL.isVideoAV()) {
+									if (prevPlist !== null) {
+										prevPlist = prevPlist.querySelector('a[href]');
+									} else {
+										var prevPaging = document.querySelector('#multi_page .paging .on')
+										if (prevPaging !== null) {
+											prevPaging = prevPaging.previousElementSibling;
+											if (prevPaging !== null) {
+												doClick(prevPaging);
+												setTimeout(function() {
+													var curList = document.querySelector('#multi_page .cur-list li:last-child a[href]');
+													doClick(curList);
+												}, 200);
+												return;
+											}
+										}
+									}
+								}
+								var readyState = querySelectorFromIframe('.bilibili-player-video-panel').getAttribute('style');
 								if (readyState !== null ) {
 									if (readyState.search("display: none;") !== -1) {
 										doClick(prevPlist);
+										if (prevPlist === null) {
+											shortcut.shortcutsTips("分集切换","没有上一集了");
+										}
 									} else {
 										return;
 									}
@@ -1215,16 +1013,32 @@
 								shortcut.shortcutsTips("分集切换","没有上一集了");
 							}
 						} else if (type === "next") {
-							if (typeof plist !== 'undefined' && typeof nextPlist !== 'undefined' && nextPlist !== null) {
-								var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
+							if (typeof plist !== 'undefined' && plist !== null ) {
+								if (matchURL.isVideoAV()) {
+									if (nextPlist !== null) {
+										nextPlist = nextPlist.querySelector('a[href]');
+									} else {
+										var nextPaging = document.querySelector('#multi_page .paging .on');
+										if (nextPaging !== null) {
+											nextPaging = nextPaging.nextElementSibling;
+											if (nextPaging !== null) {
+												doClick(nextPaging);
+												setTimeout(function() {
+													var curList = document.querySelector('#multi_page .cur-list li:first-child a[href]');
+													doClick(curList);
+												}, 200);
+												return;
+											}
+										}
+									}
+								}
+								var readyState = querySelectorFromIframe('.bilibili-player-video-panel').getAttribute('style');
 								if (readyState !== null ) {
 									if (readyState.search("display: none;") !== -1) {
-										var nextPlistInnerText = nextPlist.innerText;
-										if(nextPlistInnerText.search("展开") !== -1 || nextPlistInnerText.search("收起") !== -1 || nextPlistInnerText.search("全部 >") !== -1){
-											shortcut.shortcutsTips("分集切换","没有下一集了");
-											return;
-										}
 										doClick(nextPlist);
+										if (nextPlist === null) {
+											shortcut.shortcutsTips("分集切换","没有下一集了");
+										}
 									} else {
 										return;
 									}
@@ -1236,7 +1050,7 @@
 					}
 				},
 				videoMute : function () {
-					var controlBtn = isBangumi('div[name="vol"]');
+					var controlBtn = querySelectorFromIframe('div[name="vol"]');
 					if (controlBtn !== null) {
 						doClick(controlBtn.querySelector('i'));
 
@@ -1287,12 +1101,12 @@
 					adjustPlayer.autoLightOn(true,"ONOFF",shortcut.shortcutsTips("开/关灯",tipsValue()));
 				},
 				loopVideoOnOff : function () {
-					var controlBtn = isBangumi('.bilibili-player-video-btn-repeat > i');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat > i');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
-						window.setTimeout(function() {
-							var controllTooltip = isBangumi('div.player-tooltips');
+						setTimeout(function() {
+							var controllTooltip = querySelectorFromIframe('div.player-tooltips');
 							if(controllTooltip !== null){
 								controllTooltip.style.display = "none";
 							}
@@ -1314,23 +1128,12 @@
 						var scrollToY = (window.pageYOffset || document.documentElement.scrollTop) - (document.documentElement.clientTop || 0);
 						document.body.setAttribute("adjustPlayerScrollToY",scrollToY);
 
-						var focus = function(setting) {
-							var autoFocusOffsetType = setting.autoFocusOffsetType;
-							var autoFocusOffsetValue= setting.autoFocusOffsetValue;
-							var autoFocusPosition = setting.autoFocusPosition;
-							adjustPlayer.autoFocus(true,autoFocusOffsetType,autoFocusOffsetValue,autoFocusPosition,true);
-							shortcut.shortcutsTips("定位","到播放器顶端");
-						};
+						var setting = window.adjustPlayerSetting;
+						var autoFocusOffsetType = setting.autoFocusPlayerOffsetType;
+						var autoFocusOffsetValue= setting.autoFocusPlayerOffsetValue;
+						adjustPlayer.autoFocusPlayer(true,autoFocusOffsetType,autoFocusOffsetValue,true);
+						shortcut.shortcutsTips("定位","到播放器顶端");
 
-						if (typeof GM_getValue === 'function') {
-							var setting = config.read();
-							focus(setting);
-						} else {
-							var setting = config.read();
-							setting.then(function(value){
-								focus(value);
-							});
-						}
 					} else {
 						var scrollToY = document.body.getAttribute("adjustPlayerScrollToY");
 						unsafeWindow.scrollTo(0, scrollToY);
@@ -1340,18 +1143,18 @@
 					}
 				},
 				moveToPlayerFocus : function () {
-					var videoFocus = isBangumi('.bilibili-player-video-control');
+					var videoFocus = querySelectorFromIframe('.bilibili-player-video-control');
 					if(videoFocus !== null){
 						doClick(videoFocus);
 					}
 					shortcut.shortcutsTips("移动","到播放器焦点");
 				},
 				focusDanmakuInput : function (e) {
-					var controlBtn = isBangumi("input.bilibili-player-video-danmaku-input");
+					var controlBtn = querySelectorFromIframe("input.bilibili-player-video-danmaku-input");
 					if (controlBtn !== null) {
-						var adjustPlayerAutoHideControlBar = isBangumi("#adjustPlayerAutoHideControlBar");
+						var adjustPlayerAutoHideControlBar = querySelectorFromIframe("#adjustPlayerAutoHideControlBar");
 						if (adjustPlayerAutoHideControlBar !== null ) {
-							var sendbar = isBangumi(".bilibili-player-video-sendbar");
+							var sendbar = querySelectorFromIframe(".bilibili-player-video-sendbar");
 							sendbar.style = "opacity: 1 !important; visibility: visible;!important;outline: none;";
 							sendbar.setAttribute("tabindex","-1");
 
@@ -1361,8 +1164,8 @@
 							};
 							var danmakuInputKeydownEvent = function (e) {
 								if (e.keyCode == 9) {
-									isBangumi('.bilibili-player-video video').focus();
-									isBangumi(".bilibili-player-video-sendbar").style = "opacity: 1;";
+									querySelectorFromIframe('.bilibili-player-video video').focus();
+									querySelectorFromIframe(".bilibili-player-video-sendbar").style = "opacity: 1;";
 									e.preventDefault();
 									controlBtn.removeEventListener('keydown', danmakuInputKeydownEvent, false);
 								}
@@ -1384,22 +1187,22 @@
 						var timeoutID ;
 						clearTimeout(this.timeoutID);
 
-						var tips = isBangumi('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap > #adjust-player-shortcuts-tips');
+						var tips = querySelectorFromIframe('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap > #adjust-player-shortcuts-tips');
 						if (tips === null ) {
 							var tipsElement = document.createElement('div');
 							tipsElement.id = "adjust-player-shortcuts-tips";
 							tipsElement.style = "display: block; width:auto; opacity: 0;";
 							tipsElement.className = "bilibili-player-volumeHint";
 							tipsElement.innerHTML = type + ":" + value;
-							isBangumi('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap ').appendChild(tipsElement);
+							querySelectorFromIframe('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap ').appendChild(tipsElement);
 							tipsElement.style = "display: block; width:auto; opacity: 1; margin-left:-"+(tipsElement.offsetWidth / 2)+"px";
 						} else {
 							tips.innerHTML = type + ":" + value;
 							tips.style = "display: block; width:auto; opacity: 1; margin-left:-"+(tips.offsetWidth / 2)+"px";
 						}
 
-						this.timeoutID = window.setTimeout(function() {
-							var adjustPlayerShortcutsTips = isBangumi('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap > #adjust-player-shortcuts-tips');
+						this.timeoutID = setTimeout(function() {
+							var adjustPlayerShortcutsTips = querySelectorFromIframe('#bilibiliPlayer > .bilibili-player-area > .bilibili-player-video-wrap > #adjust-player-shortcuts-tips');
 							if(adjustPlayerShortcutsTips !== null) {
 								adjustPlayerShortcutsTips.style = "display: block;width:auto;opacity: 0;";
 							}
@@ -1549,7 +1352,7 @@
 									if (event.keyCode === 37 || event.keyCode === 38 || event.keyCode === 39 || event.keyCode === 40) {
 										//event.stopPropagation();
 										var videoFocus = function(){
-											var videoControl = isBangumi('.bilibili-player-video-control');
+											var videoControl = querySelectorFromIframe('.bilibili-player-video-control');
 											if(videoControl !== null){
 												doClick(videoControl);
 											}
@@ -1609,13 +1412,75 @@
 			};
 			shortcut.init(set);
 		},
+		adjust: function(setting,isReload) {
+			var video = querySelectorFromIframe('.bilibili-player-video video');
+			//给老版本初始化“双击全屏延时”的默认值
+			if (setting.doubleClickFullScreen === true && typeof setting.doubleClickFullScreenDelayed === 'undefined') {
+				adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,200);
+			} else {
+				adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,setting.doubleClickFullScreenDelayed);
+			}
+			//初始化“迷你播放器尺寸”的默认值
+			if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
+				adjustPlayer.resizeMiniPlayer(true,320);
+			} else {
+				adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
+			}
+			//修复没开启“自动宽屏模式”自动关灯失效
+			setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
+			//“隐藏弹幕”最后执行
+			adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
+				if(value === "show"){
+					Promise.all([
+						adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
+						adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
+					]).then(function(values){
+						adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
+							if(value === "hide"){
+								adjustPlayer.hideDanmuku(setting.hideDanmuku,setting.hideDanmukuType);
+							}
+						});
+					});
+				}
+			});
+			adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
+			adjustPlayer.tabDanmulist(setting.tabDanmulist);
+			adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
+			adjustPlayer.autoPlay(setting.autoPlay,video);
+			adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,setting.autoVideoSpeedValue,video);
+			adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
+
+			if (isReload) {
+				var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+				if(screenMode === 'widescreen') {
+					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
+					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+				} else if(screenMode === 'webfullscreen') {
+					adjustPlayer.autoWebFullScreen(true);
+				} else if(screenMode === 'normal') {
+					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+				}
+				adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio,setting.autoHideControlBar);
+			} else {
+				if (setting.autoWebFullScreen === true) {
+					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
+				} else {
+					//开启“网页全屏”后，不加载的功能
+					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+					adjustPlayer.autoWidescreen(setting.autoWidescreen,setting.autoWidescreenFullscreen);
+					adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio,setting.autoHideControlBar);
+				}
+				adjustPlayer.shortcuts(setting.shortcuts);
+			}
+		},
 		init: function(firstrun,setting) {
+			unsafeWindow.adjustPlayerTest = true;
+			window.adjustPlayerSetting = setting;
 			//修复后台打开视频页面脚本加载失效
 			var documentState = document.visibilityState;
 			if(documentState === "visible") {
 				//初始化
-				console.log('adjustPlayer:\n' + 'loadPage:' + location.href);
-				//console.log('settingInfo:\n' + JSON.stringify(setting));
+				console.log('adjustPlayer(ver.stardust):\n' + 'loadPage:' + location.href);
 				//显示帮助提示
 				var isFirstrun = function() {
 					if (firstrun) {
@@ -1631,111 +1496,31 @@
 						try {
 							setTimeout(function () {
 								createConfigBtn();
-								isFirstrun();
-								adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
-								adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
-									adjustPlayer.resizeMiniPlayer(true,320);
-								} else {
-									adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize);
-								}
-								reloadPList.init();
+								configWindow.help();
 							}, 1000);
-							console.log('adjustPlayer:\nflashPlayer init success');
+							console.log('adjustPlayer(ver.stardust):\nflashPlayer init success');
 						} catch (e) {
 							clearInterval(timer);
-							console.log('adjustPlayer:\nflashPlayer init error\n' + e);
+							console.log('adjustPlayer(ver.stardust):\nflashPlayer init error\n' + e);
 						} finally {
 							clearInterval(timer);
 						}
 					} else if (player === "html5Player") {
-						var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
-						var video = isBangumi('.bilibili-player-video video');
+						var readyState = querySelectorFromIframe('.bilibili-player-video-panel');
+						var video = querySelectorFromIframe('.bilibili-player-video video');
+						var isReload = false;
 						if (video !== null && readyState !== null ) {
-							if (readyState.search("display: none;") !== -1) {
+							if (readyState.getAttribute('style') !== null && readyState.getAttribute('style').search("display: none;") !== -1) {
 								try {
 									createConfigBtn();
 									isFirstrun();
-
-									//给老版本初始化“双击全屏延时”的默认值
-									if (setting.doubleClickFullScreen === true && typeof setting.doubleClickFullScreenDelayed === 'undefined') {
-										adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,200);
-									} else {
-										adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,setting.doubleClickFullScreenDelayed);
-									}
-
-									//“半自动全屏”提示，“半自动全屏”最优先开启
-									var autoFullScreen = function(){
-										if(setting.autoFullScreen === true) {
-											var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
-											if (tipsAutoFullScreen) {
-												configWindow.tipsAutoFullScreen();
-											}
-											adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
-										}
-									};
-									if (setting.autoWebFullScreen === true && setting.autoFullScreen === true) {
-										autoFullScreen();
-									} else if (setting.autoWebFullScreen === true) {
-										adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
-									} else if (setting.autoFullScreen === true) {
-										autoFullScreen();
-									} else {
-										//开启“网页全屏”，“半自动全屏”后，不加载的功能
-										adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-										adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
-										adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-									}
-
-									//初始化“迷你播放器尺寸”的默认值
-									if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
-										adjustPlayer.resizeMiniPlayer(true,320);
-									} else {
-										adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
-									}
-
-									//开启“循环播放”后，不加载“自动播放下一个视频”
-									if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
-										adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
-									} else if (setting.autoNextPlist === true) {
-										window.setTimeout(function() {adjustPlayer.autoNextPlist(setting.autoNextPlist,video);}, 1000);
-									} else {
-										adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
-									}
-
-									//修复没开启“自动宽屏模式”自动关灯失效
-									window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
-
-									//“隐藏弹幕”最后执行
-									adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
-										if(value === "show"){
-											Promise.all([
-												adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
-												adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
-											]).then(function(values){
-												adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
-													if(value === "hide"){
-														adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
-													}
-												});
-											});
-										}
-									});
-
-									adjustPlayer.tabDanmulist(setting.tabDanmulist);
-									adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
-									adjustPlayer.autoPlay(setting.autoPlay,video);
-									adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);
-									adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
-									adjustPlayer.shortcuts(setting.shortcuts);
-
+									adjustPlayer.adjust(setting,isReload);
 									reloadPList.init();
-									console.log('adjustPlayer:\nhtml5Player init success');
+									console.log('adjustPlayer(ver.stardust):\nhtml5Player init success');
 								}
 								catch (e) {
 									clearInterval(timer);
-									console.log('adjustPlayer:\nhtml5Player init error\n' + e);
+									console.log('adjustPlayer(ver.stardust):\nhtml5Player init error\n' + e);
 								}
 								finally {
 									reloadPList.getScreenMode();
@@ -1748,7 +1533,7 @@
 							if (timerCount >= 120) {
 								timerCount = 0 ;
 								clearInterval(timer);
-								console.log('adjustPlayer:\n html5Player init error: not find video');
+								console.log('adjustPlayer(ver.stardust):\n html5Player init error: not find video');
 							}
 						}
 					} else {
@@ -1757,7 +1542,7 @@
 						if (timerCount >= 120) {
 							timerCount = 0 ;
 							clearInterval(timer);
-							console.log('adjustPlayer:\n html5Player init error: timeout');
+							console.log('adjustPlayer(ver.stardust):\n html5Player init error: timeout');
 						}
 					}
 				}, 800);
@@ -1791,7 +1576,7 @@
 		},
 		reload: function(setting) {
 			//多P页面重加载
-			console.log('adjustPlayer:\n' + 'reloadPage:' + location.href);
+			console.log('adjustPlayer(ver.stardust):\n' + 'reloadPage:' + location.href);
 			//总计时器
 			var timerCount = 0;
 			var timer = window.setInterval(function callback() {
@@ -1799,105 +1584,31 @@
 				if (player === "flashPlayer") {
 					try {
 						setTimeout(function () {
-							adjustPlayer.autoWide(setting.autoWide,setting.autoWideFullscreen);
-							adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-							adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-							reloadPList.init();
+							createConfigBtn();
+							configWindow.help();
 						}, 1000);
-						console.log('adjustPlayer:\nflashPlayer reload success');
+						console.log('adjustPlayer(ver.stardust):\nflashPlayer init success');
 					} catch (e) {
 						clearInterval(timer);
-						console.log('adjustPlayer:\nflashPlayer reload error\n' + e);
+						console.log('adjustPlayer(ver.stardust):\nflashPlayer init error\n' + e);
 					} finally {
 						clearInterval(timer);
 					}
 				} else if (player === "html5Player") {
-					var readyState = isBangumi('.bilibili-player-video-panel').getAttribute('style');
-					var video = isBangumi('.bilibili-player-video video');
-					var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+					var readyState = querySelectorFromIframe('.bilibili-player-video-panel');
+					var video = querySelectorFromIframe('.bilibili-player-video video');
+					var isReload = true;
 					if (video !== null && readyState !== null ) {
-						if (readyState.search("display: none;") !== -1) {
+						if (readyState.getAttribute('style') !== null && readyState.getAttribute('style').search("display: none;") !== -1) {
 							try {
-								//给老版本初始化“双击全屏延时”的默认值
-								if (setting.doubleClickFullScreen === true && typeof setting.doubleClickFullScreenDelayed === 'undefined') {
-									adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,200);
-								} else {
-									adjustPlayer.doubleClickFullScreen(setting.doubleClickFullScreen,setting.doubleClickFullScreenDelayed);
-								}
-								//“半自动全屏”提示
-								var autoFullScreen = function(){
-									if(setting.autoFullScreen === true) {
-										var tipsAutoFullScreen = config.getValue('player_tips_autoFullScreen', true);
-										if (tipsAutoFullScreen) {
-											configWindow.tipsAutoFullScreen();
-										}
-										adjustPlayer.autoFullScreen(setting.autoFullScreen,video);
-									}
-								};
-
-								if(screenMode === 'widescreen') {
-									adjustPlayer.autoWide(true,setting.autoWideFullscreen);
-									adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-								} else if(screenMode === 'webfullscreen') {
-									adjustPlayer.autoWebFullScreen(true);
-								} else if(screenMode === 'fullscreen') {
-									var fullScreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-									if(typeof fullScreen === 'undefined') {
-										autoFullScreen();
-									}
-								} else if(screenMode === 'normal') {
-									adjustPlayer.autoFocus(setting.autoFocus,setting.autoFocusOffsetType,setting.autoFocusOffsetValue,setting.autoFocusPosition);
-								}
-
-								adjustPlayer.resizePlayer(setting.resizePlayer,setting.adjustPlayerWidth,setting.adjustPlayerRatio);
-
-								//初始化“迷你播放器尺寸”的默认值
-								if (setting.resizePlayer === true && typeof setting.resizeMiniPlayer === 'undefined') {
-									adjustPlayer.resizeMiniPlayer(true,320);
-								} else {
-									adjustPlayer.resizeMiniPlayer(setting.resizeMiniPlayer,setting.resizeMiniPlayerSize,setting.resizeMiniPlayerSizeResizable);
-								}
-
-								//开启“循环播放”后，不加载“自动播放下一个视频”
-								if (setting.autoNextPlist === true && setting.autoLoopVideo === true) {
-									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
-								} else if (setting.autoNextPlist === true) {
-									window.setTimeout(function() {adjustPlayer.autoNextPlist(setting.autoNextPlist,video);}, 1000);
-								} else {
-									adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
-								}
-
-								//修复没开启“自动宽屏模式”自动关灯失效
-								window.setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
-
-								//“隐藏弹幕”最后执行
-								adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
-									if(value === "show"){
-										Promise.all([
-											adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
-											adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
-										]).then(function(values){
-											adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
-												if(value === "hide"){
-													adjustPlayer.hideDanmuku(setting.danmuku,setting.danmukuType);
-												}
-											});
-										});
-									}
-								});
-
-								adjustPlayer.tabDanmulist(setting.tabDanmulist);
-								adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
-								window.setTimeout(function() {adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,video);}, 200);
-								window.setTimeout(function() {adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);}, 200);
-								adjustPlayer.autoPlay(setting.autoPlay,video);
-
+								createConfigBtn();
+								adjustPlayer.adjust(setting,isReload);
 								reloadPList.init();
-								console.log('adjustPlayer:\nhtml5Player reload success');
+								console.log('adjustPlayer(ver.stardust):\nhtml5Player reload success');
 							}
 							catch (e) {
 								clearInterval(timer);
-								console.log('adjustPlayer:\nhtml5Player reload error\n' + e);
+								console.log('adjustPlayer(ver.stardust):\nhtml5Player reload error\n' + e);
 							}
 							finally {
 								reloadPList.getScreenMode();
@@ -1910,7 +1621,7 @@
 						if (timerCount >= 120) {
 							timerCount = 0 ;
 							clearInterval(timer);
-							console.log('adjustPlayer:\n html5Player reload error: not find video');
+							console.log('adjustPlayer(ver.stardust):\n html5Player reload error: not find video');
 						}
 					}
 				} else {
@@ -1919,7 +1630,7 @@
 					if (timerCount >= 120) {
 						timerCount = 0 ;
 						clearInterval(timer);
-						console.log('adjustPlayer:\n html5Player reload error: timeout');
+						console.log('adjustPlayer(ver.stardust):\n html5Player reload error: timeout');
 					}
 				}
 			}, 800);
@@ -1929,7 +1640,7 @@
 		getPListId: function(href) {
 			var id;
 			if(typeof href !== 'undefined'){
-				id = href.match(/ep\d*/g) || href.match(/p=\d*/g) || href.match(/#page=\d*/g) || href.match(/ss\d*#\d*/g) || href.match(/watchlater\/#\/av\d*\/p\d*/g);
+				id = href.match(/p=\d*/g) || href.match(/#page=\d*/g) || href.match(/ep\d*/g) || href.match(/ss\d*#\d*/g) || href.match(/watchlater\/#\/av\d*\/p\d*/g) ||  href.match(/av\d*/g) ;
 				if (id !== null) {
 					id = id[0].replace(/\D/g,'');
 				} else {
@@ -1954,25 +1665,28 @@
 				console.log("reloadPList: Can't get CurrentPListId");
 			}
 		},
-		getScreenMode: function(){
+		getScreenMode: function() {
 			var player = isPlayer();
 			if (player === "html5Player") {
 				var mode;
-				var player = isBangumi('#bilibiliPlayer').getAttribute("class");
+				var player = querySelectorFromIframe('#bilibiliPlayer').getAttribute("class");
 				if (player !== null) {
-					var playerMode = player.replace(/.+mode-/g,'');
-					if (playerMode !== null) {
-						mode = playerMode;
+					mode = player;
+					if (mode.search("widescreen") !== -1) {
+						mode = 'widescreen';
+					} else if (mode.search("webfullscreen") !== -1) {
+						mode = 'webfullscreen';
+					} else if (mode.search("fullscreen") !== -1) {
+						mode = 'fullscreen';
+					} else {
+						mode = 'normal';
 					}
-				}
-				if(mode.search("bilibili-player") !== -1) {
-					mode = 'normal';
 				}
 				//console.log(mode);
 				sessionStorage.setItem("adjustPlayer_screenMode", mode);
 			}
 		},
-		init: function(){
+		init: function() {
 			var pListId = reloadPList.getPListId(location.href);
 			reloadPList.getCurrentPListId(pListId);
 
@@ -1982,9 +1696,9 @@
 					var targetNode = records[i].target;
 					if (targetNode !== null) {
 						var isReload = false;
-						var reloadTimer = null;
-						clearTimeout(this.reloadTimer);
-						this.reloadTimer = window.setTimeout(function() {
+						var reloadTimer;
+						reloadTimer = setTimeout(function() {
+							clearTimeout(this.reloadTimer);
 							if(isReload === false){
 								var newPlistId,oldPListId;
 								newPlistId = reloadPList.getPListId(targetNode.baseURI);
@@ -2008,7 +1722,7 @@
 							} else {
 								return;
 							}
-						}, 200);
+						}, 800);
 					}
 				}
 			});
@@ -2119,10 +1833,9 @@
 			config.setValue('player_adjustPlayer', adjustPlayer);
 		},
 		restore: function () {
-			var defalutConfig = '{ "autoWide": true, "autoFocus": true, "shortcuts": {} }';
+			var defalutConfig = '{ "shortcuts": {} }';
 			config.setValue('player_adjustPlayer', JSON.parse(defalutConfig));
 			config.setValue('player_firstrun', true);
-			config.setValue('player_tips_autoFullScreen', true);
 			if (typeof GM_getValue === 'function') {
 				var item = config.getValue('player_adjustPlayer');
 				return item;
@@ -2279,100 +1992,100 @@
             		<fieldset class="shortcutsGroup">
             			<legend><label>快捷键</label></legend>
             			<div class="block">
-            				<label class="h5">
+            				<label>
             					<input name="shortcutsSwitch" type="checkbox" list="shortcuts" action="childElementDisabledEvent" disabledChildElement="div,shortcutsItem" ><span class="checkbox"></span>启用快捷键功能<span tooltip="使用帮助：&#10;1：快捷键的总开关，开启后“快捷键功能”才会生效" class="tipsButton">[?]</span>
             				</label>
             				<div class="shortcutsItem">
-            					<label class="h5"><input name="shortcutsVolumeSeekingGlobal" type="checkbox" list="shortcuts" ><span class="checkbox"></span>修改音量/快进退为全局<span tooltip="使用帮助：&#10;1：修改默认的快捷键行为，不用把当前焦点定位到播放器上也能生效。" class="tipsButton">[?]</span></label>
-            					<label class="h5">
+            					<label><input name="shortcutsVolumeSeekingGlobal" type="checkbox" list="shortcuts" ><span class="checkbox"></span>修改音量/快进退为全局<span tooltip="使用帮助：&#10;1：修改默认的快捷键行为，不用把当前焦点定位到播放器上也能生效。" class="tipsButton">[?]</span></label>
+            					<label>
             						<input name="playPause" type="checkbox" list="shortcuts"><span class="checkbox"></span>播放/暂停视频 <span class="tipsButton" action="shortcuts" typeName="playPause">[设置]</span>
             						<input type="text" name="playPauseKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="playPauseKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="showHideDanmuku" type="checkbox" list="shortcuts"><span class="checkbox"></span>显示/隐藏弹幕 <span class="tipsButton" action="shortcuts" typeName="showHideDanmuku">[设置]</span>
             						<input type="text" name="showHideDanmukuKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="showHideDanmukuKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="playerWide" type="checkbox" list="shortcuts"><span class="checkbox"></span>宽屏模式 <span class="tipsButton" action="shortcuts" typeName="playerWide">[设置]</span>
             						<input type="text" name="playerWideKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="playerWideKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="fullscreen" type="checkbox" list="shortcuts"><span class="checkbox"></span>全屏模式 <span class="tipsButton" action="shortcuts" typeName="fullscreen">[设置]</span>
             						<input type="text" name="fullscreenKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="fullscreenKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="webfullscreen" type="checkbox" list="shortcuts"><span class="checkbox"></span>网页全屏模式 <span class="tipsButton" action="shortcuts" typeName="webfullscreen">[设置]</span>
             						<input type="text" name="webfullscreenKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="webfullscreenKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="videoMute" type="checkbox" list="shortcuts"><span class="checkbox"></span>静音/恢复静音  <span class="tipsButton" action="shortcuts" typeName="videoMute">[设置]</span>
             						<input type="text" name="videoMuteKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="videoMuteKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="lightOnOff" type="checkbox" list="shortcuts"><span class="checkbox"></span>播放器关灯/开灯  <span class="tipsButton" action="shortcuts" typeName="lightOnOff">[设置]</span>
             						<input type="text" name="lightOnOffKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="lightOnOffKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="loopVideoOnOff" type="checkbox" list="shortcuts"><span class="checkbox"></span>循环播放  <span class="tipsButton" action="shortcuts" typeName="loopVideoOnOff">[设置]</span>
             						<input type="text" name="loopVideoOnOffKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="loopVideoOnOffKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="focusPlayer" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到播放器<span tooltip="使用帮助：&#10;1：具体位置根据“功能调整” - “自动定位到XXX顶端” 设置的值来定位&#10（没设置“功能调整” - “自动定位到XXX顶端”功能的话，默认定位到播放器顶端）&#10;2：按下后会在“播放器位置”，和“之前浏览的位置”进行切换" class="tipsButton">[?]</span>
 									<span class="tipsButton" action="shortcuts" typeName="focusPlayer">[设置]</span>
             						<input type="text" name="focusPlayerKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusPlayerKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="focusDanmakuInput" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到弹幕框<span tooltip="使用帮助：&#10;1：焦点在弹幕框时键盘按 Tab 键隐藏弹幕框&#10;2：开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，请用快捷键来显示弹幕框" class="tipsButton">[?]</span>
 									<span class="tipsButton" action="shortcuts" typeName="focusDanmakuInput">[设置]</span>
             						<input type="text" name="focusDanmakuInputKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusDanmakuInputKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="moveToPlayerFocus" type="checkbox" list="shortcuts"><span class="checkbox"></span>焦点移到播放器
 									<span class="tipsButton" action="shortcuts" typeName="moveToPlayerFocus">[设置]</span>
             						<input type="text" name="moveToPlayerFocusKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="moveToPlayerFocusKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="addVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>增加播放速度 <span class="tipsButton" action="shortcuts" typeName="addVideoSpeed">[设置]</span>
             						<input type="text" name="addVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="addVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="subVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>减少播放速度 <span class="tipsButton" action="shortcuts" typeName="subVideoSpeed">[设置]</span>
             						<input type="text" name="subVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="subVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="resetVideoSpeed" type="checkbox" list="shortcuts"><span class="checkbox"></span>重置播放速度 <span class="tipsButton" action="shortcuts" typeName="resetVideoSpeed">[设置]</span>
             						<input type="text" name="resetVideoSpeedKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="resetVideoSpeedKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="prevPlist" type="checkbox" list="shortcuts"><span class="checkbox"></span>上一个视频  <span class="tipsButton" action="shortcuts" typeName="prevPlist">[设置]</span>
             						<input type="text" name="prevPlistKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="prevPlistKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="nextPlist" type="checkbox" list="shortcuts"><span class="checkbox"></span>下一个视频 <span class="tipsButton" action="shortcuts" typeName="nextPlist">[设置]</span>
             						<input type="text" name="nextPlistKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="nextPlistKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-								<label class="h5">
+								<label>
             						<input name="prevVideoFramerate" type="checkbox" list="shortcuts"><span class="checkbox"></span>快退一帧  <span class="tipsButton" action="shortcuts" typeName="prevVideoFramerate">[设置]</span>
             						<input type="text" name="prevVideoFramerateKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="prevVideoFramerateKeyCode" list="shortcuts" KeyCode="true">
             					</label>
-            					<label class="h5">
+            					<label>
             						<input name="nextVideoFramerate" type="checkbox" list="shortcuts"><span class="checkbox"></span>快进一帧 <span class="tipsButton" action="shortcuts" typeName="nextVideoFramerate">[设置]</span>
             						<input type="text" name="nextVideoFramerateKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="nextVideoFramerateKeyCode" list="shortcuts" KeyCode="true">
@@ -2383,14 +2096,14 @@
             		<fieldset class="danmukuGroup">
             			<legend><label>弹幕</label></legend>
             			<div class="block">
-            				<label class="h5">
-            					<input name="danmuku" type="checkbox"><span class="checkbox"></span>默认隐藏
-            					<select name="danmukuType">
+            				<label fname="hideDanmuku">
+            					<input name="hideDanmuku" type="checkbox"><span class="checkbox"></span>默认隐藏
+            					<select name="hideDanmukuType">
             						<option value="all" selected="selected">所有</option>
             						<option value="bangumi">番剧</option>
             					</select>弹幕<span tooltip="使用帮助：&#10;1：选择默认隐藏“番剧”弹幕时，只隐藏 bangumi.bilibili.com 域名，www.bilibili.com/bangumi/play/ep 下视频的弹幕" class="tipsButton">[?]</span>
             				</label>
-            				<label class="h5">
+            				<label fname="hideDanmukuFilterType">
             					<input name="hideDanmukuFilterType" type="checkbox"><span class="checkbox"></span>默认隐藏
             					<select name="hideDanmukuFilterType_Type">
             						<option value="top">顶端</option>
@@ -2399,14 +2112,14 @@
 									<option value="scroll">滚动</option>
             					</select>弹幕
             				</label>
-							<label class="h5">
+							<label fname="danmukuPreventShade">
 								<input name="danmukuPreventShade" type="checkbox"><span class="checkbox"></span>默认
 								<select name="danmukuPreventShadeType">
             						<option value="on" selected="selected">开启</option>
             						<option value="off">关闭</option>
             					</select>防挡弹幕<span tooltip="使用帮助：&#10;1：“番剧”页面和普通页面的“防挡弹幕”默认设置竟然不一样？开启后设置让它一致 " class="tipsButton">[?]</span>
 							</label>
-							<label class="h5"><input name="tabDanmulist" type="checkbox"><span class="checkbox"></span>默认显示弹幕列表</label>
+							<label fname="tabDanmulist"><input name="tabDanmulist" type="checkbox"><span class="checkbox"></span>默认展开弹幕列表</label>
             		</div>
             	</fieldset>
             </div>
@@ -2414,34 +2127,35 @@
             	<fieldset class="modeGroup">
             		<legend><label>播放模式</label></legend>
             		<div class="block">
-						<label><input name="autoWide" type="checkbox"><span class="checkbox"></span>自动宽屏</label>
-						<label class="h5" style="margin-left: 33px;">退出全屏后
-							<select name="autoWideFullscreen">
-            					<option value="off" selected="selected">关闭</option>
-            					<option value="on">开启</option>
-            				</select>自动宽屏
-							<span tooltip="使用帮助：&#10;1：开启“自动宽屏”功能后，退出全屏后是否开启宽屏" class="tipsButton">[?]</span>
+						<label fname="autoWidescreen" class="multiLine">
+							<input name="autoWidescreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,autoWidescreenFullscreen" ><span class="checkbox"></span>自动宽屏
+							<div class="newLine">退出全屏后
+								<select name="autoWidescreenFullscreen" disabled="">
+            						<option value="off" selected="selected">关闭</option>
+            						<option value="on">开启</option>
+            					</select>自动宽屏
+								<span tooltip="使用帮助：&#10;1：开启“自动宽屏”功能后，退出全屏后是否开启宽屏" class="tipsButton">[?]</span>
+							</div>
 						</label>
-            			<label class="h5"><input name="autoWebFullScreen" type="checkbox"><span class="checkbox"></span>自动网页全屏<span tooltip="使用帮助：&#10;1：按Esc键退出网页全屏&#10;3：开启此功能后，调整大小，自动宽屏，定位功能不会启用" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="doubleClickFullScreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,doubleClickFullScreenDelayed" ><span class="checkbox"></span>双击全屏<span tooltip="使用帮助：&#10;1：双击视频区域全屏" class="tipsButton">[?]</span></label>
-						<label class="h5" style="margin-left: 33px;">播放/暂停延时<input name="doubleClickFullScreenDelayed" type="number" min="0" max="500" placeholder="200" value="200" style="width: 45px;">毫秒<span tooltip="使用帮助：&#10;1：开启“双击全屏”功能后点击视频区域“播放/暂停”会增加延时，使全屏功能更流畅&#10;2：由于增加了延时，导致点击视频区域“播放/暂停”功能不是及时的，这时可以用键盘空格键暂停&#10;3：毫秒数设置为0，关闭延时" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="autoFullScreen" type="checkbox"><span class="checkbox"></span>半自动全屏<span tooltip="使用帮助：&#10;1：因为浏览器有限制无法使用脚本模拟自动全屏，需要手动按下 F11 键全屏。&#10;3：退出全屏需要手动按 F11 键，再次按 Esc 键退出网页全屏。&#10;4：建议搭配“自动播放下一个视频”功能使用。&#10;" class="tipsButton">[?]</span></label>
+            			<label fname="autoWebFullScreen"><input name="autoWebFullScreen" type="checkbox"><span class="checkbox"></span>自动网页全屏<span tooltip="使用帮助：&#10;1：按Esc键退出网页全屏&#10;3：开启此功能后，调整大小，自动宽屏，定位功能不会启用" class="tipsButton">[?]</span></label>
+            			<label fname="doubleClickFullScreen" class="multiLine"><input name="doubleClickFullScreen" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,doubleClickFullScreenDelayed" ><span class="checkbox"></span>双击全屏<span tooltip="使用帮助：&#10;1：双击视频区域全屏" class="tipsButton">[?]</span>
+						<div class="newLine">播放/暂停延时<input name="doubleClickFullScreenDelayed" type="number" min="0" max="500" placeholder="200" value="200" style="width: 45px;">毫秒<span tooltip="使用帮助：&#10;1：开启“双击全屏”功能后点击视频区域“播放/暂停”会增加延时，使全屏功能更流畅&#10;2：由于增加了延时，导致点击视频区域“播放/暂停”功能不是及时的，这时可以用键盘空格键暂停&#10;3：毫秒数设置为0，关闭延时" class="tipsButton">[?]</span></div></label>
 					</div>
             	</fieldset>
             	<fieldset class="playbackGroup">
             		<legend><label>播放视频</label></legend>
             		<div class="block">
-            			<label class="h5"><input name="autoPlay" type="checkbox"><span class="checkbox"></span>自动播放视频</label>
-            			<label class="h5"><input name="autoNextPlist" type="checkbox"><span class="checkbox"></span>自动播放下一个视频<span tooltip="使用帮助：&#10;1：此选项启用后将无视“B站”HTML5播放器自带的“自动换P功能”&#10;2：自动跳过“承包榜”、“充电名单”" class="tipsButton">[?]</span></label>
-            			<label class="h5"><input name="autoLoopVideo" type="checkbox"><span class="checkbox"></span>自动循环播放当前视频<span tooltip="使用帮助：&#10;1：开启此功能后“自动播放下一个视频”不会启用 &#10;" class="tipsButton">[?]</span></label>
-						<label class="h5"><input name="skipSetTime" type="checkbox" action="childElementDisabledEvent" disabledChildElement="inputs,skipSetTimeValueMinutes;skipSetTimeValueSeconds" ><span class="checkbox"></span>自动从指定时间开始播放</label>
-            			<label style="margin-left: 33px;">
+            			<label fname="autoPlay"><input name="autoPlay" type="checkbox"><span class="checkbox"></span>自动播放视频</label>
+            			<label fname="autoLoopVideo"><input name="autoLoopVideo" type="checkbox"><span class="checkbox"></span>自动循环播放当前视频</label>
+						<label fname="skipSetTime" class="multiLine"><input name="skipSetTime" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,skipSetTimeValueMinutes;skipSetTimeValueSeconds" ><span class="checkbox"></span>自动从指定时间开始播放
+            			<div class="newLine">
             				<input name="skipSetTimeValueMinutes" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">分钟
             				<input name="skipSetTimeValueSeconds" type="number" min="0" max="60" placeholder="0" value="0" style="width: 45px;" disabled="">秒
             				<input type="hidden" name="skipSetTimeValue">
-            			</label>
-            			<label class="h5">选择默认播放速度
-            				<select name="autoVideoSpeed">
+            			</div></label>
+            			<label fname="autoVideoSpeed">
+						    <input name="autoVideoSpeed" type="checkbox"><span class="checkbox"></span>修改默认播放速度
+            				<select name="autoVideoSpeedValue">
             					<option value="0.5">0.5倍速</option>
             					<option value="0.75">0.75倍速</option>
             					<option value="1" selected="selected">正常</option>
@@ -2455,43 +2169,37 @@
             	<fieldset class="functionGroup">
             			<legend><label>功能调整</label></legend>
             			<div class="block">
-            				<label><input name="autoFocus" type="checkbox"><span class="checkbox"></span>自动定位到
-            					<select name="autoFocusPosition">
-            						<option value="player" selected="selected">播放器</option>
-            						<option value="video">视频</option>
-            					</select>
-            					顶端<span tooltip="使用帮助：&#10;1：如果不满意位置，可以设置偏移位置，往上或往下移（播放器顶端位置（或视频顶端位置）是参照）。" class="tipsButton">[?]</span>
-            				</label>
-            				<label style="margin-left: 33px;">定位偏移
-            					<select name="autoFocusOffsetType">
-            						<option value="defalut" selected="selected">默认</option>
-            						<option value="sub">上移</option>
+            				<label fname="autoFocusPlayer" class="multiLine"><input name="autoFocusPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,autoFocusPlayerOffsetType;autoFocusPlayerOffsetValue" ><span class="checkbox"></span>自动定位到播放器顶端
+            				<div class="newLine">定位偏移
+            					<select name="autoFocusPlayerOffsetType" disabled="">
+            						<option value="sub" selected="selected">上移</option>
             						<option value="add">下移</option>
             					</select>
-            					<input name="autoFocusOffsetValue" type="number" min="0" value="0" placeholder="0" style="width: 45px;" disabled="">像素
+            					<input name="autoFocusPlayerOffsetValue" type="number" min="0" value="10" placeholder="10" style="width: 45px;" disabled="">像素
+								<span tooltip="使用帮助：&#10;1：可以设置偏移位置，往上或往下移。" class="tipsButton">[?]</span>
             				</span>
-            			</label>
-            			<label class="h5"><input name="autoHideControlBar" type="checkbox"><span class="checkbox"></span>自动隐藏播放器控制栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;3：鼠标移动到播放器顶部显示弹幕栏，移动到底部显示控制栏&#10;4：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;5：此功能修改自：https://userstyles.org/styles/131642/bilibili-html5" class="tipsButton">[?]</span></label>
-            			<label>
-            				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>手动指定播放器大小
+            			</div></label>
+            			<label fname="autoHideControlBar"><input name="autoHideControlBar" type="checkbox"><span class="checkbox"></span>自动隐藏播放器控制栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;3：鼠标移动到播放器顶部显示弹幕栏，移动到底部显示控制栏&#10;4：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;5：此功能修改自：https://userstyles.org/styles/131642/bilibili-html5" class="tipsButton">[?]</span></label>
+            			<label fname="resizePlayer" class="multiLine">
+            				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>指定播放器大小
             				<span class="tipsButton" action="adjustPlayerSize" tooltip="使用帮助：&#10;1：点击[调整大小]进行调整">[调整大小]</span>
-            				<input type="hidden" name="adjustPlayerWidth">
-							<input type="hidden" name="adjustPlayerRatio">
-            			</label>
-            			<label>
-            				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize" ><span class="checkbox"></span>迷你播放器宽度
-            				<input name="resizeMiniPlayerSize" type="number" min="0" value="320" placeholder="320" style="width: 45px;" disabled="">像素
-            				<span tooltip="使用帮助：&#10;1：调整评论处迷你播放器大小，输入合适的宽度后自动计算新大小&#10;   （ 新大小比例为 16：9）&#10;" class="tipsButton">[?]</span>
+							<div class="newLine">宽度<input name="adjustPlayerWidth" type="text" class="hide" readOnly="true" value="1024">
+            					比例<input name="adjustPlayerRatio" type="text" class="hide" readOnly="true" value="16/9">
+							</div>
 						</label>
-						<label class="h5" style="margin-left: 33px;">
+            			<label fname="resizeMiniPlayer" class="multiLine">
+            				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize;resizeMiniPlayerSizeResizable" ><span class="checkbox"></span>迷你播放器宽度
+            				<input name="resizeMiniPlayerSize" type="number" min="0" value="320" placeholder="320" style="width: 45px;" disabled="">像素
+            				<span tooltip="使用帮助：&#10;1：调整评论处迷你播放器大小，输入合适的宽度后自动计算新大小&#10;   （新大小比例为 16：9）&#10;" class="tipsButton">[?]</span>
+						<div class="newLine">
 							迷你播放器
-							<select name="resizeMiniPlayerSizeResizable">
+							<select name="resizeMiniPlayerSizeResizable" disabled="">
             					<option value="off" selected="selected">关闭</option>
             					<option value="on">开启</option>
             				</select>可调整大小
 							<span tooltip="使用帮助：&#10;1：开启“修改迷你播放器宽度”后，拖动迷你播放器右下角调节按钮，可以调整大小。&#10;2：此功能是“实验功能”，部分页面可能不起作用" class="tipsButton">[?]</span>
-						</label>
-						<label class="h5"><input name="autoLightOn" type="checkbox"><span class="checkbox"></span>自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
+						</div></label>
+						<label fname="autoLightOn"><input name="autoLightOn" type="checkbox"><span class="checkbox"></span>自动播放器关灯<span tooltip="使用帮助：&#10;1：在视频区域内点击右键进行开，关灯操作&#10;2：双击黑暗区域开灯。" class="tipsButton">[?]</span></label>
             		</div>
             	</fieldset>
             </div>
@@ -2502,7 +2210,7 @@
           		<a href="javascript:void(0);" action="storageType" tooltip="脚本设置无法保存的，请点这里！">存储类型</a>
            	</span>
            	<span class="feedback">
-          		<a href="https://greasyfork.org/zh-CN/scripts/21284-%E5%93%94%E5%93%A9%E5%93%94%E5%93%A9-bilibili-com-%E6%92%AD%E6%94%BE%E5%99%A8%E8%B0%83%E6%95%B4/feedback">反馈</a>
+          		<a href="https://greasyfork.org/zh-CN/forum/discussion/39646/%E6%96%B0%E7%89%88%E6%92%AD%E6%94%BE%E5%99%A8%E9%A1%B5%E9%9D%A2">反馈</a>
            	</span>
         </div>
         <div class="btns">
@@ -2518,52 +2226,76 @@
 			//loadData
 			var form = document.querySelector('#adjust-player #main form');
 			deserialize(form, formData);
+			//fix clonenode select value
+			form.onchange = function (e) {
+				var node = e.target;
+				var nodeName = node.nodeName;
+				if (nodeName === "SELECT") {
+					var options = node.options;
+					for (var i=0; i <options.length; i++) {
+						if (i === options.selectedIndex) {
+							node.options[node.selectedIndex].setAttribute("selected","");
+						} else {
+							node.options[i].removeAttribute("selected");
+						}
+					}
+				}
+			};
 			//init bindEvent
 			configWindow.mainWindowResizeEvent();
-			configWindow.autoFocusEvent();
-			configWindow.childElementDisabledEvent("resizeMiniPlayer","input,resizeMiniPlayerSize");
-			configWindow.childElementDisabledEvent("doubleClickFullScreen","input,doubleClickFullScreenDelayed");
-			configWindow.childElementDisabledEvent("skipSetTime","inputs,skipSetTimeValueMinutes;skipSetTimeValueSeconds");
-			configWindow.childElementDisabledEvent("shortcutsSwitch","div,shortcutsItem");
+			//childElementDisabledEvent
+			var childElementDisabledEventActions =document.querySelectorAll('#adjust-player [action="childElementDisabledEvent"]'), i;
+			for (i = 0; i < childElementDisabledEventActions.length; ++i) {
+				var action = childElementDisabledEventActions[i];
+				configWindow.childElementDisabledEvent(action.getAttribute("name"),action.getAttribute("disabledchildelement"));
+			}
 			//version
 			try{
 				var version = document.querySelector('#adjust-player form span.ver').innerHTML = "版本:" + GM_info.script.version;
 			} catch (e) {
 				var version = document.querySelector('#adjust-player form span.ver').innerHTML = "版本:无法获取";
 			}
-			//html5Player tips
+			//flashPlayer tips
 			var player = isPlayer();
-			var adjustPlayerMainIsHTML5 = document.querySelector('#adjustPlayerMainIsHTML5');
-			if (player === "html5Player") {
-				if (adjustPlayerMainIsHTML5 === null ) {
-					var css ='#adjust-player .h5 { color:#222 !important;}';
-					var node = document.createElement('style');
-					node.type = 'text/css';
-					node.id = 'adjustPlayerMainIsHTML5';
-					node.appendChild(document.createTextNode(css));
-					document.body.appendChild(node);
-				}
-			} else {
-				if (adjustPlayerMainIsHTML5 !== null ) {
-					adjustPlayerMainIsHTML5.remove();
-				}
+			if (player === "flashPlayer") {
+				configWindow.help();
 			}
 		},
 		save: function () {
 			try {
-				var form = document.querySelector('#adjust-player #main form');
-				var formData = serialize(form);
-				//autoFocus
-				if (formData.autoFocusOffsetType !== 'defalut' && formData.autoFocus === true) {
-					var autoFocusOffsetValue = parseInt(formData.autoFocusOffsetValue.match(/^\+?[0-9]*$/g) [0]);
-					if (!isNaN(autoFocusOffsetValue)) {
-						formData.autoFocusOffsetValue = autoFocusOffsetValue;
+				//clone form
+				var newForm = document.createElement('form');
+				//checked
+				var func = document.querySelectorAll('#adjust-player #main form label[fname]'), i;
+				for (i = 0; i < func.length; ++i) {
+					var fname =  func[i].getAttribute('fname');
+					if (fname !== null) {
+						var checkedFunc = func[i].querySelector('[type="checkbox"]:checked[name="'+ fname +'"]');
+						if (checkedFunc !== null) {
+							var cloneNode = checkedFunc.parentNode.cloneNode(true);
+							newForm.appendChild(cloneNode);
+						}
+					}
+				}
+				//shortcuts
+				var shortcutsGroup = document.querySelector('#adjust-player #main form fieldset.shortcutsGroup');
+				var shortcutsGroupCloneNode = shortcutsGroup.cloneNode(true);
+				newForm.appendChild(shortcutsGroupCloneNode);
+
+				//serialize
+				var formData = serialize(newForm);
+
+				//autoFocusPlayer
+				if (formData.autoFocusPlayerOffsetType !== 'defalut' && formData.autoFocusPlayer === true) {
+					var autoFocusPlayerOffsetValue = parseInt(formData.autoFocusPlayerOffsetValue.match(/^\+?[0-9]*$/g) [0]);
+					if (!isNaN(autoFocusPlayerOffsetValue)) {
+						formData.autoFocusPlayerOffsetValue = autoFocusPlayerOffsetValue;
 					} else {
-						formData.autoFocusOffsetValue = 0;
+						formData.autoFocusPlayerOffsetValue = 0;
 					}
 				} else {
-					delete formData.autoFocusOffsetType;
-					delete formData.autoFocusOffsetValue;
+					delete formData.autoFocusPlayerOffsetType;
+					delete formData.autoFocusPlayerOffsetValue;
 				}
 				//skipSetTime
 				if (formData.skipSetTime === true) {
@@ -2585,10 +2317,6 @@
 					delete formData.skipSetTimeValue;
 					delete formData.skipSetTimeValueMinutes;
 					delete formData.skipSetTimeValueSeconds;
-				}
-				//autoVideoSpeed
-				if (formData.autoVideoSpeed === '1') {
-					delete formData.autoVideoSpeed;
 				}
 				//resizeMiniPlayer
 				if (formData.resizeMiniPlayer === true ) {
@@ -2612,15 +2340,14 @@
 				} else {
 					delete formData.doubleClickFullScreenDelayed;
 				}
-				//console.log(formData);
+
 				config.write(formData);
-				//alert
+				console.log(formData);
 				unsafeWindow.alert('保存设置成功');
 				location.reload();
 			} catch (e) {
 				unsafeWindow.alert('保存设置失败');
 				location.reload();
-				console.log("adjustPlayer:\nsave error\n " + e);
 			}
 		},
 		restore: function () {
@@ -2643,14 +2370,6 @@
 				mainWindow.style = 'margin-top:-' + (mainWindow.offsetHeight /2) + 'px;';
 			}
 		},
-		autoFocusEvent: function () {
-			var autoFocusOffsetType = document.querySelector('#adjust-player form select[name="autoFocusOffsetType"]');
-			var autoFocusOffsetValue = document.querySelector('#adjust-player form input[name="autoFocusOffsetValue"]');
-			autoFocusOffsetType.onchange = function (e) {
-				var autoFocusEvent = e.target.value ==="defalut" ? autoFocusOffsetValue.setAttribute('disabled', '') : autoFocusOffsetValue.removeAttribute('disabled');
-			};
-			var autoFocusEvent = autoFocusOffsetType.value ==="defalut" ? autoFocusOffsetValue.setAttribute('disabled', '') : autoFocusOffsetValue.removeAttribute('disabled');
-		},
 		childElementDisabledEvent: function (parent,childAndType) {
 			var childAndType = childAndType.split(",");
 			var type = childAndType[0];
@@ -2659,17 +2378,13 @@
 
 			if (type === "input") {
 				var parentElement = document.querySelector('#adjust-player form input[name="'+parent+'"]');
-				var childElement = document.querySelector('#adjust-player form input[name="'+child+'"]');
-				disabledEvent = parentElement.checked ? childElement.removeAttribute('disabled') : childElement.setAttribute('disabled', '');
-			} else if (type === "inputs") {
-				var parentElement = document.querySelector('#adjust-player form input[name="'+parent+'"]');
 				var childElements = child.split(";");
 				var setDisabled = function (disabled) {
 					for (var i = 0; i < childElements.length; ++i) {
 						if (disabled) {
-							document.querySelector('#adjust-player form input[name="'+childElements[i]+'"]').setAttribute('disabled', '');
+							document.querySelector('#adjust-player form [name="'+childElements[i]+'"]').setAttribute('disabled', '');
 						} else {
-							document.querySelector('#adjust-player form input[name="'+childElements[i]+'"]').removeAttribute('disabled');
+							document.querySelector('#adjust-player form [name="'+childElements[i]+'"]').removeAttribute('disabled');
 						}
 					}
 				};
@@ -2690,21 +2405,8 @@
 					return;
 				}
 			}
-
-			var adjustPlayerSizeCSS = document.querySelector('#adjustPlayerSize');
-			if (adjustPlayerSizeCSS !== null) {
-				document.documentElement.removeChild(document.querySelector('#adjustPlayerSize'));
-			}
-			var adjustPlayerMiniplayerResizable = document.querySelector('#adjust-player-miniplayer-resizable');
-			if (adjustPlayerMiniplayerResizable !== null) {
-				adjustPlayerMiniplayerResizable.remove();
-			}
-			var arcToolbarReport = document.querySelector('#arc_toolbar_report');
-			if (arcToolbarReport !== null) {
-				arcToolbarReport.remove();
-			}
-
 			document.querySelector('#adjust-player').setAttribute("style","display: none;");
+			unsafeWindow.scrollTo(0,0);
 
 			//tips
 			var tips = document.createElement('div');
@@ -2715,8 +2417,8 @@
 			  <p>当前比例：<span class="ratio">16/9</span></p>
             </div>
             <div class="tips-text">
-			  <p>调整后的大小有宽度限制，最小宽度为740像素。</p>
-			  <p>调整后的大小有高度限制，最小高度为416像素。</p>
+			  <p>调整后在页面可视区域宽度过小时，不会生效。</p>
+			  <p>调整后的大小有宽度限制，最小宽度为740像素，最小高度为416像素。</p>
 			  <p>调整后的大小在“普通模式”下会根据“播放器顶栏”、“弹幕栏”、“播放器控件”的大小自动计算出合适的尺寸。</p>
             </div>
             <div class="drag-arrow">
@@ -2783,9 +2485,9 @@
 								return;
 							} else {
 								if(width <= minWidth){
-									width = "740px";
+									width = "740";
 								} else {
-									width = adjustPlayerTips.clientWidth + "px";
+									width = adjustPlayerTips.clientWidth;
 								}
 								adjustPlayerWidth.value = width;
 								adjustPlayerRatio.value = customRatio.options[customRatio.selectedIndex].value;
@@ -2802,7 +2504,7 @@
 					} else if (action === "quickSave") {
 						var customWidth = e.target.getAttribute('customWidth');
 						var height = Number(customWidth / window.adjustPlayerTipsRatio).toFixed();
-						adjustPlayerWidth.value = customWidth + "px";
+						adjustPlayerWidth.value = customWidth;
 						adjustPlayerRatio.value =  customRatio.options[customRatio.selectedIndex].value;
 						resizePlayer.checked = true;
 						configWindow.save();
@@ -2825,18 +2527,13 @@
 			};
 
 			//resize
-			var playerContent = document.querySelector('#bofqi');
-			var oldPlayerWrapper = document.querySelector('.player-wrapper .player');
-			var newPlayerWrapper = document.querySelector('.bili-wrapper .player');
-			if (oldPlayerWrapper !== null) {
-				oldPlayerWrapper.setAttribute("style","visibility: hidden;");
-			} else {
-				newPlayerWrapper.setAttribute("style","visibility: hidden;");
-				document.querySelector('#__bofqi').setAttribute("style","width: auto !important; background: none !important; height: auto !important; position: relative !important;");
-			}
-			playerContent.style = "position: relative; width:100%; min-height: 480px; ";
+			var playerContent = document.createElement('div');
+			playerContent.id = 'adjust-Player-Size';
+			playerContent.style = "position: absolute; width: 100%; min-height: 480px; top: 60px; z-index: 999999; height: 100%; margin: 0px auto; background: #fff;";
 			playerContent.insertBefore(tips, playerContent.firstChild);
 			playerContent.insertBefore(tipsSave, playerContent.firstChild);
+
+			document.body.appendChild(playerContent);
 
 			var adjustPlayerTipsSave = document.querySelector('#adjust-player-tips-save');
 			var adjustPlayerTipsSaveContent = document.querySelector('#adjust-player-tips-save .content');
@@ -3072,38 +2769,33 @@
 			var content = commentToString(function () { /*
 			<h2 style="font-weight: bold;font-size: 16px;">小提示：</h2>
 			<ol style="padding: 0 0 0 20px;margin:10px 0;">
-			   <li style="list-style: disc;"><span style="font-weight: bold;">建议开启“HTML5 播放器”。</span></li>
-			   <li style="list-style: disc;">播放器调整设置窗口在播放器右侧。</li>
+			   <li style="list-style: disc;">播放器调整设置按钮在<span style="font-weight: bold;">页面最右侧。</span></li>
 			   <li style="list-style: disc;">播放器调整设置窗口中，鼠标移动到<span style="font-size: 12px; color: #00a1d6; cursor: pointer;margin:0 10px;"tooltip="查看帮助">[?]</span>上，查看此功能的使用帮助。</li>
-			   <li style="list-style: disc;">播放器调整设置窗口中，灰色项表示当前功能不可用，需要开启“HTML5播放器”才能使用。</li>
-			</ol>
-			<h2 style="font-weight: bold;font-size: 16px;">开启“HTML5播放器”步骤：</h2>
-			<ol style="padding: 0 0 0 20px;margin:10px 0;">
-			   <li style="list-style: decimal;">打开<a href="http://www.bilibili.com/html/help.html#p" rel="nofollow">http://www.bilibili.com/html/help.html#p</a></li>
-			   <li style="list-style: decimal;">选择→【试用点我】←开启HTML5播放器试用</li>
 			</ol>
 			<div class="btns" style="text-align: center;"><div class="btn" action="close">关闭</div></div>
 			*/ });
+
+			var player = isPlayer();
+			if (player === "flashPlayer") {
+				content = commentToString(function () { /*
+				<h2 style="font-weight: bold;font-size: 16px;">小提示：</h2>
+				<ol style="padding: 0 0 0 20px;margin:10px 0;">
+				   <li style="list-style: disc;">span style="font-weight: bold;">此脚本现已不再支持 flash 播放器</span></li>
+				   <li style="list-style: disc;"><span style="font-weight: bold;">需要开启“HTML5 播放器”。</span></li>
+				   <li style="list-style: disc;">播放器调整设置按钮在<span style="font-weight: bold;">页面最右侧。</span></li>
+				   <li style="list-style: disc;">播放器调整设置窗口中，鼠标移动到<span style="font-size: 12px; color: #00a1d6; cursor: pointer;margin:0 10px;"tooltip="查看帮助">[?]</span>上，查看此功能的使用帮助。</li>
+				</ol>
+				<h2 style="font-weight: bold;font-size: 16px;">开启“HTML5播放器”步骤：</h2>
+				<ol style="padding: 0 0 0 20px;margin:10px 0;">
+				   <li style="list-style: decimal;">打开<a href="https://www.bilibili.com/blackboard/html5playerhelp.html" rel="nofollow">https://www.bilibili.com/blackboard/html5playerhelp.html</a></li>
+				   <li style="list-style: decimal;">选择试用HTML5播放器</li>
+				</ol>
+				<div class="btns" style="text-align: center;"><div class="btn" action="close">关闭</div></div>
+				*/ });
+			}
 			dialog.create(name, title, bar, content);
 		},
-		tipsAutoFullScreen: function () {
-			var name = 'tipsAutoFullScreen';
-			var title = '半自动全屏功能提示';
-			var bar = '';
-			var content = commentToString(function () { /*
-			<p>1. 因为浏览器有限制无法使用脚本模拟自动全屏，需要手动按下 F11 键全屏。</p>
-			<p>2. 退出全屏需要手动按 F11 键，再次按 Esc 键退出网页全屏。</p>
-			<p>3. 建议搭配“自动播放下一个视频”功能使用。</p>
-			<div class="btns" style="text-align: center;">
-			   <div class="btn" action="notTips">不再提示</div>
-			</div>
-			*/ });
-			dialog.create(name, title, bar, content);
-		},
-		tipsAutoFullScreenEvent: function (name) {
-			config.setValue('player_tips_autoFullScreen', false);
-			dialog.close(document.querySelector('#adjust-player > #' + name));
-		},
+
 		init: function () {
 			configWindow.create();
 			if (typeof GM_getValue === 'function') {
@@ -3117,9 +2809,14 @@
 			}
 		}
 	};
-	function addStyle() {
-		try{
+	function createConfigBtn() {
+		var isExistAdjustPlayerMain = document.querySelector('#adjust-player');
+		if (isExistAdjustPlayerMain === null) {
 			var css = commentToString(function () { /*
+				#adjust-player-config-btn{position: fixed; bottom: 243px; right: 6px; z-index: 10;}
+				#adjust-player-config-btn span{font-size: 12px; display: block; padding: 6px 0; text-align: center; line-height: 17px; background: #fff; border: 1px solid #e7e7e7; -webkit-box-shadow: 0 6px 10px 0 hsla(0,0%,73%,.3); box-shadow: 0 6px 10px 0 hsla(0,0%,73%,.3); border-radius: 2px; color: #212121; width: 46px; cursor: pointer;}
+				#adjust-player-config-btn span:hover { color: #00a1d6; border: 1px solid #00a1d6; }
+				.float-nav .nav-menu { bottom: 60px !important; }
 				.adjust-player-mask{display:none;position:fixed;top:0;left:0;z-index:100001;width:100%;height:100%;background:#000;opacity:.6;filter:alpha(opacity=60)}
 				#adjust-player .title{font-size:16px;color:#222;text-align:center;font-weight:bold;margin-bottom:20px}
 				#adjust-player .dialog{position:fixed;z-index:100002;top:50%;margin-top:-280px;left:50%;width:580px;margin-left:-320px;padding:20px;background-color:rgb(255,255,255);border-radius:6px;box-shadow:1px 1px 40px 0px rgba(0,0,0,0.6);display:block;font-size:14px;line-height:26px}
@@ -3127,7 +2824,7 @@
 				#adjust-player .title span:hover{background-color:#00b5e5;cursor:pointer}
 				#adjust-player .title [action="help"]{right:52px}
 				#adjust-player fieldset{border:1px solid #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
-				#adjust-player legend{font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
+				#adjust-player legend{width: unset;font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
 				#adjust-player legend label span{color:#6d757a;font-size:12px}
 				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-appearance:unset!important;-moz-appearance:unset!important;appearance:unset!important;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
 				#adjust-player input[type="number"]{-webkit-appearance:textfield!important;-moz-appearance:menulist!important;appearance:textfield!important}
@@ -3139,9 +2836,13 @@
 				#adjust-player input[type="checkbox"]:checked  + .checkbox::before{visibility:visible;color:#00a1d6;display:inline-block;border:0px;border-radius:2px;font-family:bilibili-iconfont;content:"\E629";font-size:16px;position:absolute;margin-top:-6px;margin-left:-1px}
 				#adjust-player input[type="checkbox"]:checked  + .checkbox{visibility:hidden}
 				#adjust-player input[readOnly="true"]{color:#99a2aa;width:80px;max-width:80px;border:0px;background:#f4f5f7}
+				#adjust-player input[readOnly="true"].hide{ max-width: 47px; border: 1px #ccc solid; text-align-last: center; text-align: center; margin: 0 10px; height: 22px; }
+				#adjust-player [disabled] {color:#99a2aa}
 				#adjust-player .block{padding:5px 0}
 				#adjust-player .block .bold{font-weight:bold}
 				#adjust-player .block label{display:block;margin:2px 0 2px 19px;height:24px}
+				#adjust-player .block label.multiLine {height:auto;}
+				#adjust-player .block label.multiLine .newLine{margin-left:14px}
 				#adjust-player .tipsButton{font-size:12px;color:#00a1d6;cursor:pointer;padding:0 2px}
 				#adjust-player .left{float:left}
 				#adjust-player .right{float:right}
@@ -3155,10 +2856,9 @@
 				#adjust-player .btn:hover{color:#fff;background:#00b5e5;border-color:#00b5e5}
 				#adjust-player .btn-cancel{display:inline-block;text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
 				#adjust-player .btn-cancel:hover{color:#00a1d6;border-color:#00a1d6;background:#fff}
-				#adjust-player .h5{color:#ccc}
 				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap;position:relative}
 				#adjust-player .modalWindow{z-index:100000}
-				#adjust-player .shortcutsItem.disabled > label{color:#ccc!important}
+				#adjust-player .shortcutsItem.disabled > label{color:#99a2aa !important}
 				#adjust-player-tips{width:100%;height:100%;line-height:16px;color:#333;overflow:auto;resize:horizontal;background:linear-gradient(135deg,#E6E7E8 0,#E6E7E8 99%,#fff 95%)}
 				#adjust-player-tips p,#adjust-player-tips-save p{text-align:left}
 				#adjust-player-tips-save .content{position:absolute;top:20px;width:485px;font-size:16px;line-height:24px;padding:20px;background:#fff;border:1px solid #eee;border-radius:4px;z-index:1}
@@ -3174,43 +2874,28 @@
 				#adjust-player-tips .info span{color:#333;font-size:12px;color:#fb7299}
 				#adjust-player-tips .tips-text{position:absolute;bottom:10px;margin-left:10px;color:#99a2aa}
 				#adjust-player-tips .drag-arrow{position:absolute;right:0}
-				.bgray-btn{height:auto!important;margin:10px 0px 0px 10px!important}
-				#v_top_gg{display:none!important}
 			*/});
 			var node = document.createElement('style');
 			node.type = 'text/css';
 			node.id = 'adjustPlayerMainCss';
 			node.appendChild(document.createTextNode(css));
 			document.body.appendChild(node);
-			//创建设置窗口容器
 			var adjustPlayer = document.createElement('div');
 			adjustPlayer.id = 'adjust-player';
 			document.body.appendChild(adjustPlayer);
-			//遮罩层
 			var adjustPlayerMask = document.createElement('div');
 			adjustPlayerMask.className = 'adjust-player-mask';
 			document.querySelector('#adjust-player').appendChild(adjustPlayerMask);
-		} catch (e) {
-			console.log('addStyle：'+e);
 		}
-	}
-	function createConfigBtn() {
-		var isExist = document.querySelector('#adjust-player');
-		if (isExist === null) {
-			//添加设置窗口样式并创建容器
-			addStyle();
-			//创建设置按钮
+		var isExistConfigBtn = document.querySelector('#adjust-player-config-btn');
+		if (isExistConfigBtn === null) {
 			var configButton = document.createElement('div');
 			configButton.id = 'adjust-player-config-btn';
-			configButton.className = 'bgray-btn show';
-			configButton.setAttribute("style","display: block;");
-			configButton.innerHTML = '播放器调整';
+			configButton.innerHTML = '<span>播放器<br>调整</span>';
 			configButton.onclick = function () {
 				configWindow.init();
 			};
-			var bgrayBtnWrap = document.querySelector('div.bgray-btn-wrap');
-			bgrayBtnWrap.setAttribute("style","display: block;");
-			bgrayBtnWrap.appendChild(configButton);
+			document.querySelector('body').appendChild(configButton);
 		}
 	}
 	var matchURL = {
@@ -3230,23 +2915,7 @@
 			if (location.href.match(/bangumi\/play\/(ep|ss)\d*/g) !== null ) { return true; } else { return false; }
 		}
 	};
-	function getScrollEventElement() {
-		var element = null;
-		if (matchURL.isVideoAV()) {
-			element = document.querySelector('.player-wrapper + .main-inner');
-			if(element === null){
-				element = document.querySelector('.player-box + .bili-wrapper');
-			}
-		} else if (matchURL.isNewBangumi()) {
-			element = document.querySelector('.main-container .bangumi-info-wrapper');
-		} else if (matchURL.isOldBangumi()) {
-			element = document.querySelector('.b-page-body + .main-inner');
-		} else if (matchURL.isWatchlater()) {
-			element = document.querySelector('.view-later-module .video-ex-info');
-		}
-		return element;
-	}
-	function isBangumi(obj) {
+	function querySelectorFromIframe(obj) {
 		var iframePlayer = document.querySelector('iframe.bilibiliHtml5Player');
 		if (matchURL.isOldBangumi() || matchURL.isNewBangumi() ) {
 			if (iframePlayer !== null ) {
@@ -3259,8 +2928,8 @@
 		}
 	}
 	function isPlayer() {
-		var flashPlayer = isBangumi('#bofqi object');
-		var html5Player = isBangumi('.bilibili-player-video video');
+		var flashPlayer = querySelectorFromIframe('#bofqi object');
+		var html5Player = querySelectorFromIframe('.bilibili-player-video video');
 		if (flashPlayer !== null) {
 			return "flashPlayer";
 		} else if (html5Player !== null) {
