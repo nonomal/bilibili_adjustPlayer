@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.1
+// @version     stardust_1.2
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -376,8 +376,20 @@
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				try{
 					var resizePlayer = function() {
-						reloadPList.getScreenMode();
-						var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+						var screenMode = 'normal';
+						var player = querySelectorFromIframe('#bilibiliPlayer').getAttribute("class");
+						if (player !== null) {
+							if (player.search("widescreen") !== -1) {
+								screenMode = 'widescreen';
+							} else if (player.search("webfullscreen") !== -1) {
+								screenMode = 'webfullscreen';
+							} else if (player.search("fullscreen") !== -1) {
+								screenMode = 'fullscreen';
+							} else {
+								screenMode = 'normal';
+							}
+						}
+
 						var playerCustomWidth = width + 'px';
 						var playerNormalModeWidth = 'calc('+ playerCustomWidth +' - 350px - 30px )';
 						var playerMarginTop = 'calc(0px + 50px + 20px)';
@@ -673,7 +685,7 @@
 						var evt = document.createEvent('Event');
 						evt.initEvent('resize', true, true);
 						querySelectorFromIframe('.bilibili-player-video video').dispatchEvent(evt);
-					}, 200);
+					}, 800);
 				};
 
 				var miniPlayerHideShowEvent = function() {
@@ -1665,46 +1677,28 @@
 			}
 			return id;
 		},
-		getCurrentPListId: function(id) {
-			if(typeof id !== 'undefined') {
-				var currentPListId = document.body.querySelector('#adjust-player-currentPListId');
-				if(currentPListId === null){
-					var node = document.createElement('div');
-					node.id = 'adjust-player-currentPListId';
-					node.setAttribute("style","display: none;");
-					node.innerHTML = id;
-					document.body.appendChild(node);
-				} else{
-					currentPListId.innerHTML = id;
-				}
-			} else {
-				console.log("reloadPList: Can't get CurrentPListId");
-			}
-		},
 		getScreenMode: function() {
 			var player = isPlayer();
 			if (player === "html5Player") {
-				var mode;
+				var screenMode = 'normal';
 				var player = querySelectorFromIframe('#bilibiliPlayer').getAttribute("class");
 				if (player !== null) {
-					mode = player;
-					if (mode.search("widescreen") !== -1) {
-						mode = 'widescreen';
-					} else if (mode.search("webfullscreen") !== -1) {
-						mode = 'webfullscreen';
-					} else if (mode.search("fullscreen") !== -1) {
-						mode = 'fullscreen';
+					if (player.search("widescreen") !== -1) {
+						screenMode = 'widescreen';
+					} else if (player.search("webfullscreen") !== -1) {
+						screenMode = 'webfullscreen';
+					} else if (player.search("fullscreen") !== -1) {
+						screenMode = 'fullscreen';
 					} else {
-						mode = 'normal';
+						screenMode = 'normal';
 					}
 				}
-				//console.log(mode);
-				sessionStorage.setItem("adjustPlayer_screenMode", mode);
+				sessionStorage.setItem("adjustPlayer_screenMode", screenMode);
 			}
 		},
 		init: function() {
 			var pListId = reloadPList.getPListId(location.href);
-			reloadPList.getCurrentPListId(pListId);
+			window.adjustPlayerCurrentPListId = pListId
 
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
 			var observer = new MutationObserver(function (records) {
@@ -1712,33 +1706,28 @@
 					var targetNode = records[i].target;
 					if (targetNode !== null) {
 						var isReload = false;
-						var reloadTimer;
-						reloadTimer = setTimeout(function() {
-							clearTimeout(this.reloadTimer);
-							if(isReload === false){
-								var newPlistId,oldPListId;
-								newPlistId = reloadPList.getPListId(targetNode.baseURI);
-								oldPListId = document.querySelector('#adjust-player-currentPListId').innerHTML;
-								if(newPlistId !== oldPListId){
-									console.log('reloadPList:\nnewPlistId:' + newPlistId + "\noldPListId:" +oldPListId);
-									isReload = true;
-									observer.disconnect();
-									if (typeof GM_getValue === 'function') {
-										var setting = config.read();
-										adjustPlayer.reload(setting);
-									} else {
-										var setting = config.read();
-										setting.then(function(value){
-											adjustPlayer.reload(value);
-										});
-									}
+						if(isReload === false){
+							var newPlistId,oldPListId;
+							newPlistId = reloadPList.getPListId(targetNode.baseURI);
+							oldPListId = window.adjustPlayerCurrentPListId;
+							if(newPlistId !== oldPListId){
+								console.log('reloadPList:\nnewPlistId:' + newPlistId + "\noldPListId:" +oldPListId);
+								isReload = true;
+								observer.disconnect();
+								if (typeof GM_getValue === 'function') {
+									var setting = config.read();
+									adjustPlayer.reload(setting);
 								} else {
-									reloadPList.getScreenMode();
+									var setting = config.read();
+									setting.then(function(value){
+										adjustPlayer.reload(value);
+									});
 								}
+								break;
 							} else {
-								return;
+								reloadPList.getScreenMode();
 							}
-						}, 800);
+						}
 					}
 				}
 			});
