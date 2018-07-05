@@ -12,7 +12,7 @@
 // @include     http*://bangumi.bilibili.com/movie/*
 // @exclude     http*://bangumi.bilibili.com/movie/
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     1.52
+// @version     1.53
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1937,7 +1937,7 @@
 		getPListId: function(href) {
 			var id;
 			if(typeof href !== 'undefined'){
-				id = href.match(/ep\d*/g) || href.match(/p=\d*/g) || href.match(/#page=\d*/g) || href.match(/ss\d*#\d*/g) || href.match(/watchlater\/#\/av\d*\/p\d*/g);
+				id = href.match(/p=\d*/g) || href.match(/#page=\d*/g) || href.match(/ep\d*/g) || href.match(/ss\d*#\d*/g) || href.match(/watchlater\/#\/av\d*\/p\d*/g) ||  href.match(/av\d*/g) ;
 				if (id !== null) {
 					id = id[0].replace(/\D/g,'');
 				} else {
@@ -1946,43 +1946,28 @@
 			}
 			return id;
 		},
-		getCurrentPListId: function(id) {
-			if(typeof id !== 'undefined') {
-				var currentPListId = document.body.querySelector('#adjust-player-currentPListId');
-				if(currentPListId === null){
-					var node = document.createElement('div');
-					node.id = 'adjust-player-currentPListId';
-					node.setAttribute("style","display: none;");
-					node.innerHTML = id;
-					document.body.appendChild(node);
-				} else{
-					currentPListId.innerHTML = id;
-				}
-			} else {
-				console.log("reloadPList: Can't get CurrentPListId");
-			}
-		},
-		getScreenMode: function(){
+		getScreenMode: function() {
 			var player = isPlayer();
 			if (player === "html5Player") {
-				var mode;
+				var screenMode = 'normal';
 				var player = isBangumi('#bilibiliPlayer').getAttribute("class");
 				if (player !== null) {
-					var playerMode = player.replace(/.+mode-/g,'');
-					if (playerMode !== null) {
-						mode = playerMode;
+					if (player.search("widescreen") !== -1) {
+						screenMode = 'widescreen';
+					} else if (player.search("webfullscreen") !== -1) {
+						screenMode = 'webfullscreen';
+					} else if (player.search("fullscreen") !== -1) {
+						screenMode = 'fullscreen';
+					} else {
+						screenMode = 'normal';
 					}
 				}
-				if(mode.search("bilibili-player") !== -1) {
-					mode = 'normal';
-				}
-				//console.log(mode);
-				sessionStorage.setItem("adjustPlayer_screenMode", mode);
+				sessionStorage.setItem("adjustPlayer_screenMode", screenMode);
 			}
 		},
-		init: function(){
+		init: function() {
 			var pListId = reloadPList.getPListId(location.href);
-			reloadPList.getCurrentPListId(pListId);
+			window.adjustPlayerCurrentPListId = pListId;
 
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
 			var observer = new MutationObserver(function (records) {
@@ -1990,33 +1975,28 @@
 					var targetNode = records[i].target;
 					if (targetNode !== null) {
 						var isReload = false;
-						var reloadTimer = null;
-						clearTimeout(this.reloadTimer);
-						this.reloadTimer = window.setTimeout(function() {
-							if(isReload === false){
-								var newPlistId,oldPListId;
-								newPlistId = reloadPList.getPListId(targetNode.baseURI);
-								oldPListId = document.querySelector('#adjust-player-currentPListId').innerHTML;
-								if(newPlistId !== oldPListId){
-									console.log('reloadPList:\nnewPlistId:' + newPlistId + "\noldPListId:" +oldPListId);
-									isReload = true;
-									observer.disconnect();
-									if (typeof GM_getValue === 'function') {
-										var setting = config.read();
-										adjustPlayer.reload(setting);
-									} else {
-										var setting = config.read();
-										setting.then(function(value){
-											adjustPlayer.reload(value);
-										});
-									}
+						if (isReload === false) {
+							var newPlistId,oldPListId;
+							newPlistId = reloadPList.getPListId(targetNode.baseURI);
+							oldPListId = window.adjustPlayerCurrentPListId;
+							if (newPlistId !== oldPListId) {
+								console.log('reloadPList:\nnewPlistId:' + newPlistId + "\noldPListId:" +oldPListId);
+								isReload = true;
+								observer.disconnect();
+								if (typeof GM_getValue === 'function') {
+									var setting = config.read();
+									adjustPlayer.reload(setting);
 								} else {
-									reloadPList.getScreenMode();
+									var setting = config.read();
+									setting.then(function(value) {
+										adjustPlayer.reload(value);
+									});
 								}
+								break;
 							} else {
-								return;
+								reloadPList.getScreenMode();
 							}
-						}, 200);
+						}
 					}
 				}
 			});
