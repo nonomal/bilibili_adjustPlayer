@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.3
+// @version     stardust_1.4
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -18,7 +18,7 @@
 (function () {
 	'use strict';
 	var adjustPlayer = {
-		autoWidescreen: function (set,fullscreen,isResizePlayer) {
+		autoWidescreen: function (set,fullscreen) {
 			if (typeof set !== 'undefined') {
 				var autoWidescreen = function () {
 					var widescreenBtn = querySelectorFromIframe('i[name="widescreen"]');
@@ -28,24 +28,7 @@
 						}
 					}
 				};
-
-				//修复开启调整大小后点击宽屏按钮后定位到播放器不正确
-				var fixWidescreenFocusPlayer = function() {
-					var setting = window.adjustPlayerSetting;
-					var autoFocusPlayerOffsetType = setting.autoFocusPlayerOffsetType;
-					var autoFocusPlayerOffsetValue= setting.autoFocusPlayerOffsetValue;
-					unsafeWindow.$('div[name="widescreen"]').on("click", function(event){
-						setTimeout(function() {
-							adjustPlayer.autoFocusPlayer(true,autoFocusPlayerOffsetType,autoFocusPlayerOffsetValue,true);
-						}, 200);
-					});
-				};
-				if (isResizePlayer) {
-					fixWidescreenFocusPlayer();
-				}
-
 				autoWidescreen();
-
 				if (typeof fullscreen !== 'undefined' ) {
 					if (fullscreen === 'on') {
 						function fullscreenEvent(e) {
@@ -60,6 +43,21 @@
 						document.addEventListener("MSFullscreenChange", fullscreenEvent);
 					}
 				}
+			}
+		},
+		fixWidescreenFocusPlayer: function (isResizePlayer) {
+			var fixWidescreenFocusPlayer = function() {
+				var setting = window.adjustPlayerSetting;
+				var autoFocusPlayerOffsetType = setting.autoFocusPlayerOffsetType;
+				var autoFocusPlayerOffsetValue= setting.autoFocusPlayerOffsetValue;
+				unsafeWindow.$('div[name="widescreen"]').on("click", function(event){
+					setTimeout(function() {
+						adjustPlayer.autoFocusPlayer(true,autoFocusPlayerOffsetType,autoFocusPlayerOffsetValue,true);
+					}, 200);
+				});
+			};
+			if (isResizePlayer) {
+				fixWidescreenFocusPlayer();
 			}
 		},
 		autoFocusPlayer: function (set,offsetType,offsetValue,isShortcut) {
@@ -1468,7 +1466,8 @@
 			if (isReload) {
 				var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
 				if(screenMode === 'widescreen') {
-					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen,setting.resizePlayer);
+					adjustPlayer.fixWidescreenFocusPlayer(setting.resizePlayer);
+					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 				} else if(screenMode === 'webfullscreen') {
 					adjustPlayer.autoWebFullScreen(true);
@@ -1481,8 +1480,9 @@
 					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
 				} else {
 					//开启“网页全屏”后，不加载的功能
+					adjustPlayer.fixWidescreenFocusPlayer(setting.resizePlayer);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-					adjustPlayer.autoWidescreen(setting.autoWidescreen,setting.autoWidescreenFullscreen,setting.resizePlayer);
+					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
 					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideControlBar);
 				}
 				adjustPlayer.shortcuts(setting.shortcuts);
