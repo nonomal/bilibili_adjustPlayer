@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.2
+// @version     stardust_1.3
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -376,20 +376,7 @@
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				try{
 					var resizePlayer = function() {
-						var screenMode = 'normal';
-						var player = querySelectorFromIframe('#bilibiliPlayer').getAttribute("class");
-						if (player !== null) {
-							if (player.search("widescreen") !== -1) {
-								screenMode = 'widescreen';
-							} else if (player.search("webfullscreen") !== -1) {
-								screenMode = 'webfullscreen';
-							} else if (player.search("fullscreen") !== -1) {
-								screenMode = 'fullscreen';
-							} else {
-								screenMode = 'normal';
-							}
-						}
-
+						var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
 						var playerCustomWidth = width + 'px';
 						var playerNormalModeWidth = 'calc('+ playerCustomWidth +' - 350px - 30px )';
 						var playerMarginTop = 'calc(0px + 50px + 20px)';
@@ -1534,6 +1521,14 @@
 							clearInterval(timer);
 						}
 					} else if (player === "html5Player") {
+
+						var stardustPlayer = document.querySelector('.stardust-player');
+						if (stardustPlayer === null ){
+							clearInterval(timer);
+							console.log('adjustPlayer(ver.stardust):\n旧版播放器页面不支持\n');
+							return;
+						}
+
 						var readyState = querySelectorFromIframe('.bilibili-player-video-panel');
 						var video = querySelectorFromIframe('.bilibili-player-video video');
 						var isReload = false;
