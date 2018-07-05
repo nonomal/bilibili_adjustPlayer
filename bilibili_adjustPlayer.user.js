@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.4
+// @version     stardust_1.7
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -380,14 +380,15 @@
 						var playerMarginTop = 'calc(0px + 50px + 20px)';
 						var playerBottomBarHeight = isAutohideControlbar && screenMode === 'widescreen' ?  playerBottomBarHeight = '0px' : playerBottomBarHeight = '68px';
 						var playerNormalModeHeight = 'calc( '+ playerNormalModeWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +')';
+						var videoInfoAndUpInfo = '#viewbox_report,#v_upinfo{ position: absolute !important; top: 75px !important; } #v_upinfo{ max-width: 324px !important; }';
 
+						//videoInfoAndUpInfoPosition
 						if (videoInfoAndUpInfoPosition === 'top') {
-							videoInfoAndUpInfoPosition = '#viewbox_report,#v_upinfo{ position: absolute !important; top: 75px !important; } #v_upinfo{ max-width: 324px !important; }';
 							playerMarginTop = 'calc(0px + 50px + 20px + 120px)';
 						} else if (videoInfoAndUpInfoPosition === 'bottom') {
-							videoInfoAndUpInfoPosition = '';
+							videoInfoAndUpInfo = '';
 						} else {
-							videoInfoAndUpInfoPosition = '';
+							videoInfoAndUpInfo = '';
 						}
 
 						var css = [''];
@@ -414,7 +415,7 @@
 								'.v-wrap .r-con { width: 350px !important; }',
 								'.v-wrap .l-con , .v-wrap .r-con { margin-top:calc('+ playerNormalModeHeight +' + '+ playerMarginTop +' ) !important; }',
 								'#danmukuBox { position: absolute !important; top: '+ playerMarginTop +' !important; height: '+ playerNormalModeHeight +' !important; }',
-								''+ videoInfoAndUpInfoPosition +'',
+								''+ videoInfoAndUpInfo +'',
 								'}'
 							];
 						} else if (screenMode === "widescreen") {
@@ -432,8 +433,8 @@
 								'.v-wrap .l-con { width: calc(100% - 350px - 30px) !important; }',
 								'.v-wrap .r-con { width: 350px !important; }',
 								'.v-wrap .l-con , .v-wrap .r-con { margin-top:calc('+ playerCustomWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +' + '+ playerMarginTop +' ) !important; }',
-								'#danmukuBox { position: absolute !important; top: '+ playerMarginTop +' !important; height: '+ playerNormalModeHeight +' !important; }',
-								''+ videoInfoAndUpInfoPosition +'',
+								'#danmukuBox { position: absolute !important; top: '+ playerMarginTop +' !important; height: '+ playerNormalModeHeight +' !important; visibility: hidden;}',
+								''+ videoInfoAndUpInfo +'',
 								'}'
 							];
 						}
@@ -1693,7 +1694,7 @@
 		},
 		init: function() {
 			var pListId = reloadPList.getPListId(location.href);
-			window.adjustPlayerCurrentPListId = pListId
+			window.adjustPlayerCurrentPListId = pListId;
 
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
 			var observer = new MutationObserver(function (records) {
@@ -1701,11 +1702,11 @@
 					var targetNode = records[i].target;
 					if (targetNode !== null) {
 						var isReload = false;
-						if(isReload === false){
+						if (isReload === false) {
 							var newPlistId,oldPListId;
 							newPlistId = reloadPList.getPListId(targetNode.baseURI);
 							oldPListId = window.adjustPlayerCurrentPListId;
-							if(newPlistId !== oldPListId){
+							if (newPlistId !== oldPListId) {
 								console.log('reloadPList:\nnewPlistId:' + newPlistId + "\noldPListId:" +oldPListId);
 								isReload = true;
 								observer.disconnect();
@@ -1928,14 +1929,6 @@
 								break;
 							case 'storageType':
 								configWindow.storageTypeWindow(e);
-								break;
-							default:
-								break;
-						}
-					} else if (name === "tipsAutoFullScreen") {
-						switch (action) {
-							case 'notTips':
-								configWindow.tipsAutoFullScreenEvent(name);
 								break;
 							default:
 								break;
@@ -2183,13 +2176,15 @@
             			<label fname="resizePlayer" class="multiLine">
             				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>指定播放器大小
             				<span class="tipsButton" action="adjustPlayerSize" tooltip="使用帮助：&#10;1：点击[调整大小]进行调整">[调整大小]</span>
-							<div class="newLine">
-								视频信息&UP主位置
-								<input name="resizePlayerVideoInfoAndUpInfoPosition" type="text" class="hide" readOnly="true" value="bottom" style="max-width:60px;">
-							</div>
-							<div class="newLine">宽度<input name="resizePlayerWidth" type="text" class="hide" readOnly="true" value="1024">
-            					比例<input name="resizePlayerRatio" type="text" class="hide" readOnly="true" value="16/9">
-							</div>
+							<span style="display:none;">
+								<div class="newLine">
+									视频信息&UP主位置
+									<input name="resizePlayerVideoInfoAndUpInfoPosition" type="text" class="hide" readOnly="true" value="bottom" style="max-width:60px;">
+								</div>
+								<div class="newLine">宽度<input name="resizePlayerWidth" type="text" class="hide" readOnly="true" value="1024">
+            						比例<input name="resizePlayerRatio" type="text" class="hide" readOnly="true" value="16/9">
+								</div>
+							</span>
 						</label>
             			<label fname="resizeMiniPlayer" class="multiLine">
             				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize;resizeMiniPlayerSizeResizable" ><span class="checkbox"></span>迷你播放器宽度
@@ -2601,7 +2596,7 @@
                <div class="btn btn-cancel" action="cancel">取消</div>
 			</div>
 			*/ });
-			var isModal = e.target.offsetParent;
+			var isModal = e.target.offsetParent.offsetParent;
 			dialog.create(name, title, bar, content,isModal);
 
 			//onkeydown
@@ -2827,10 +2822,10 @@
 		var isExistAdjustPlayerMain = document.querySelector('#adjust-player');
 		if (isExistAdjustPlayerMain === null) {
 			var css = commentToString(function () { /*
-				#adjust-player-config-btn{position: fixed; bottom: 243px; right: 6px; z-index: 10;}
-				#adjust-player-config-btn span{font-size: 12px; display: block; padding: 6px 0; text-align: center; line-height: 17px; background: #fff; border: 1px solid #e7e7e7; -webkit-box-shadow: 0 6px 10px 0 hsla(0,0%,73%,.3); box-shadow: 0 6px 10px 0 hsla(0,0%,73%,.3); border-radius: 2px; color: #212121; width: 46px; cursor: pointer;}
-				#adjust-player-config-btn span:hover { color: #00a1d6; border: 1px solid #00a1d6; }
-				.float-nav .nav-menu { bottom: 60px !important; }
+				#adjust-player-config-btn{position:fixed;bottom:243px;right:6px;z-index:10;}
+				#adjust-player-config-btn span{font-size:12px;display:block;padding:6px 0;text-align:center;line-height:17px;background:#fff;border:1px solid #e7e7e7;-webkit-box-shadow:0 6px 10px 0 hsla(0,0%,73%,.3);box-shadow:0 6px 10px 0 hsla(0,0%,73%,.3);border-radius:2px;color:#212121;width:46px;cursor:pointer}
+				#adjust-player-config-btn span:hover {color: #00a1d6;border: 1px solid #00a1d6}
+				.float-nav .nav-menu {bottom:60px!important}
 				.adjust-player-mask{display:none;position:fixed;top:0;left:0;z-index:100001;width:100%;height:100%;background:#000;opacity:.6;filter:alpha(opacity=60)}
 				#adjust-player .title{font-size:16px;color:#222;text-align:center;font-weight:bold;margin-bottom:20px}
 				#adjust-player .dialog{position:fixed;z-index:100002;top:50%;margin-top:-280px;left:50%;width:580px;margin-left:-320px;padding:20px;background-color:rgb(255,255,255);border-radius:6px;box-shadow:1px 1px 40px 0px rgba(0,0,0,0.6);display:block;font-size:14px;line-height:26px}
@@ -2889,11 +2884,11 @@
 				#adjust-player-tips .tips-text{position:absolute;bottom:10px;margin-left:10px;color:#99a2aa}
 				#adjust-player-tips .drag-arrow{position:absolute;right:0}
 			*/});
-			var node = document.createElement('style');
-			node.type = 'text/css';
-			node.id = 'adjustPlayerMainCss';
-			node.appendChild(document.createTextNode(css));
-			document.body.appendChild(node);
+			var styleNode = document.createElement('style');
+			styleNode.type = 'text/css';
+			styleNode.id = 'adjustPlayerMainCss';
+			styleNode.appendChild(document.createTextNode(css));
+			document.documentElement.appendChild(styleNode);
 			var adjustPlayer = document.createElement('div');
 			adjustPlayer.id = 'adjust-player';
 			document.body.appendChild(adjustPlayer);
