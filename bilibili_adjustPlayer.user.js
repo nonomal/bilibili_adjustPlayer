@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.7
+// @version     stardust_1.8
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -45,29 +45,24 @@
 				}
 			}
 		},
-		fixWidescreenFocusPlayer: function (isResizePlayer) {
-			var fixWidescreenFocusPlayer = function() {
-				var setting = window.adjustPlayerSetting;
-				var autoFocusPlayerOffsetType = setting.autoFocusPlayerOffsetType;
-				var autoFocusPlayerOffsetValue= setting.autoFocusPlayerOffsetValue;
-				unsafeWindow.$('div[name="widescreen"]').on("click", function(event){
-					setTimeout(function() {
-						adjustPlayer.autoFocusPlayer(true,autoFocusPlayerOffsetType,autoFocusPlayerOffsetValue,true);
-					}, 200);
-				});
-			};
-			if (isResizePlayer) {
-				fixWidescreenFocusPlayer();
+		fixWidescreenFocusPlayer: function (setting) {
+			if (setting.autoFocusPlayer) {
+				unsafeWindow.PlayerAgent.player_widewin = null;
+				return;
+			} else if (setting.resizePlayer) {
+				unsafeWindow.PlayerAgent.player_widewin = function() {
+					adjustPlayer.autoFocusPlayer(true,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+				};
 			}
 		},
 		autoFocusPlayer: function (set,offsetType,offsetValue,isShortcut) {
 			if (typeof set !== 'undefined') {
 				try{
-					var focusPlayer = function(){
+					var focusPlayer = function() {
 						setTimeout(function() {
 							var playerWrapper;
 							var scrollToY;
-							if (matchURL.isVideoAV()){
+							if (matchURL.isVideoAV()) {
 								playerWrapper = document.querySelector('#bofqi.stardust-player');
 								scrollToY = playerWrapper.offsetTop;
 							}
@@ -1467,7 +1462,7 @@
 			if (isReload) {
 				var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
 				if(screenMode === 'widescreen') {
-					adjustPlayer.fixWidescreenFocusPlayer(setting.resizePlayer);
+					adjustPlayer.fixWidescreenFocusPlayer(setting);
 					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 				} else if(screenMode === 'webfullscreen') {
@@ -1481,9 +1476,9 @@
 					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
 				} else {
 					//开启“网页全屏”后，不加载的功能
-					adjustPlayer.fixWidescreenFocusPlayer(setting.resizePlayer);
+					adjustPlayer.fixWidescreenFocusPlayer(setting);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
+					adjustPlayer.autoWidescreen(setting.autoWidescreen,setting.autoWidescreenFullscreen);
 					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideControlBar);
 				}
 				adjustPlayer.shortcuts(setting.shortcuts);
@@ -2176,15 +2171,13 @@
             			<label fname="resizePlayer" class="multiLine">
             				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>指定播放器大小
             				<span class="tipsButton" action="adjustPlayerSize" tooltip="使用帮助：&#10;1：点击[调整大小]进行调整">[调整大小]</span>
-							<span style="display:none;">
-								<div class="newLine">
-									视频信息&UP主位置
-									<input name="resizePlayerVideoInfoAndUpInfoPosition" type="text" class="hide" readOnly="true" value="bottom" style="max-width:60px;">
-								</div>
-								<div class="newLine">宽度<input name="resizePlayerWidth" type="text" class="hide" readOnly="true" value="1024">
-            						比例<input name="resizePlayerRatio" type="text" class="hide" readOnly="true" value="16/9">
-								</div>
-							</span>
+							<div class="newLine">
+								视频信息&UP主位置
+								<input name="resizePlayerVideoInfoAndUpInfoPosition" type="text" class="hide" readOnly="true" value="bottom" style="max-width:60px;">
+							</div>
+							<div class="newLine">宽度<input name="resizePlayerWidth" type="text" class="hide" readOnly="true" value="1024">
+            					比例<input name="resizePlayerRatio" type="text" class="hide" readOnly="true" value="16/9">
+							</div>
 						</label>
             			<label fname="resizeMiniPlayer" class="multiLine">
             				<input name="resizeMiniPlayer" type="checkbox" action="childElementDisabledEvent" disabledChildElement="input,resizeMiniPlayerSize;resizeMiniPlayerSizeResizable" ><span class="checkbox"></span>迷你播放器宽度
