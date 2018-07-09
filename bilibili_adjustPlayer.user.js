@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.8
+// @version     stardust_1.9
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1504,18 +1504,8 @@
 				var timer = window.setInterval(function callback() {
 					var player = isPlayer();
 					if (player === "flashPlayer") {
-						try {
-							setTimeout(function () {
-								createConfigBtn();
-								configWindow.help();
-							}, 1000);
-							console.log('adjustPlayer(ver.stardust):\nflashPlayer init success');
-						} catch (e) {
-							clearInterval(timer);
-							console.log('adjustPlayer(ver.stardust):\nflashPlayer init error\n' + e);
-						} finally {
-							clearInterval(timer);
-						}
+						configWindow.help();
+						clearInterval(timer);
 					} else if (player === "html5Player") {
 
 						var stardustPlayer = document.querySelector('.stardust-player');
@@ -2782,10 +2772,8 @@
 				content = commentToString(function () { /*
 				<h2 style="font-weight: bold;font-size: 16px;">小提示：</h2>
 				<ol style="padding: 0 0 0 20px;margin:10px 0;">
-				   <li style="list-style: disc;">span style="font-weight: bold;">此脚本现已不再支持 flash 播放器</span></li>
+				   <li style="list-style: disc;"><span style="font-weight: bold;">此脚本现已不再支持 flash 播放器</span></li>
 				   <li style="list-style: disc;"><span style="font-weight: bold;">需要开启“HTML5 播放器”。</span></li>
-				   <li style="list-style: disc;">播放器调整设置按钮在<span style="font-weight: bold;">页面最右侧。</span></li>
-				   <li style="list-style: disc;">播放器调整设置窗口中，鼠标移动到<span style="font-size: 12px; color: #00a1d6; cursor: pointer;margin:0 10px;"tooltip="查看帮助">[?]</span>上，查看此功能的使用帮助。</li>
 				</ol>
 				<h2 style="font-weight: bold;font-size: 16px;">开启“HTML5播放器”步骤：</h2>
 				<ol style="padding: 0 0 0 20px;margin:10px 0;">
