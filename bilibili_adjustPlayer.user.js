@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_1.9
+// @version     stardust_2.0
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -373,7 +373,7 @@
 						var playerCustomWidth = width + 'px';
 						var playerNormalModeWidth = 'calc('+ playerCustomWidth +' - 350px - 30px )';
 						var playerMarginTop = 'calc(0px + 50px + 20px)';
-						var playerBottomBarHeight = isAutohideControlbar && screenMode === 'widescreen' ?  playerBottomBarHeight = '0px' : playerBottomBarHeight = '68px';
+						var playerBottomBarHeight = isAutohideControlbar && screenMode === 'widescreen' ?  playerBottomBarHeight = '0px' : playerBottomBarHeight = '46px';
 						var playerNormalModeHeight = 'calc( '+ playerNormalModeWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +')';
 						var videoInfoAndUpInfo = '#viewbox_report,#v_upinfo{ position: absolute !important; top: 75px !important; } #v_upinfo{ max-width: 324px !important; }';
 
@@ -728,21 +728,10 @@
 				miniPlayerHideShowEvent();
 			}
 		},
-		autoHideControlBar: function (set,focusDanmakuInput,video) {
+		autoHideSendbar : function (set,focusDanmakuInput,video) {
 			if (typeof set !== 'undefined') {
 				try{
-					if (querySelectorFromIframe('#adjustPlayerAutoHideControlBar')) {return;}
-
-					//伪修复 macOS 下 Chrome 透明度失效 https://greasyfork.org/zh-CN/forum/discussion/30243/x
-					var fixSendbarOpacity = function(){
-						var opacity = "1";
-						if (navigator.userAgent.indexOf('Mac OS X') !== -1 && /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)) {
-							opacity = "1";
-						} else {
-							opacity = "0.9";
-						}
-						return opacity;
-					};
+					if (querySelectorFromIframe('#adjustPlayerAutoHideSendbar')) {return;}
 
 					//开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，鼠标移动到弹幕框时不显示“弹幕框”
 					var isFocusDanmakuInput = function(){
@@ -754,40 +743,44 @@
 					};
 
 					var css = [
-						//https://userstyles.org/styles/131642/bilibili-html5
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-wrap, #bilibiliPlayer.mode-widescreen .bilibili-player-video-wrap { height: 100% !important; width: 100% !important; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control { opacity: 0 !important; transition: 0.2s; position: absolute; bottom: 0px; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-control:hover { opacity: '+ fixSendbarOpacity() +' !important; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar { width: 100% !important; opacity: 0 !important; transition: 0.2s; position: absolute; top: 0px; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar:hover { opacity: '+ fixSendbarOpacity() +' !important; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar .bilibili-player-mode-selection-container, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar .bilibili-player-mode-selection-container { height: 120px; border-radius: 5px; top: 100%; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar .bilibili-player-color-picker-container, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar .bilibili-player-color-picker-container { height: 208px; border-radius: 5px; top: 100%; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-info-container, #bilibiliPlayer.mode-widescreen .bilibili-player-video-info-container { top: 40px; }',
-						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-float-lastplay, #bilibiliPlayer.mode-widescreen .bilibili-player-video-float-lastplay { bottom: 30px; }',
+						//修改自 https://userstyles.org/styles/131642/bilibili-html5
+						'#bilibiliPlayer.mode-widescreen .bilibili-player-video-bottom-area { position: absolute !important; width: 100% !important;  }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-danmaku-setting-wrap, #bilibiliPlayer.mode-widescreen .bilibili-player-video-danmaku-setting-wrap { top: 46px !important; bottom: 0 !important; right: -240px !important; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-mode-selection-container, #bilibiliPlayer.mode-widescreen .bilibili-player-mode-selection-container { position: relative; bottom: 0; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar { background: rgba(33,33,33,.9) !important; opacity: 0; transition: all .2s ease-in-out; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-control-bottom-center { position: fixed; width: 100% !important; top: 0 !important; padding: 0 !important; left: 0 !important; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar { width: 100% !important; max-width: unset !important; }',
+						'#bilibiliPlayer.mode-webfullscreen .bilibili-player-video-sendbar:hover, #bilibiliPlayer.mode-widescreen .bilibili-player-video-sendbar:hover { opacity: 1; }',
 						isFocusDanmakuInput()
 					];
 					var node = document.createElement('style');
 					node.type = 'text/css';
-					node.id = 'adjustPlayerAutoHideControlBar';
+					node.id = 'adjustPlayerAutoHideSendbar';
 					node.appendChild(document.createTextNode(css.join('')));
 					querySelectorFromIframe('.player').appendChild(node);
 
-					//进行快进(退)操作时弹出进度条
-					video.addEventListener("seeking", function() {
-						var controlBar = querySelectorFromIframe('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
-						if (controlBar !== null ) {
-							controlBar.style = "opacity: 1 !important;";
-							var timer = null;
-							clearTimeout(this.timer);
-							this.timer = setTimeout(function() {
-								var controlBar = querySelectorFromIframe('.autohide-controlbar > #bilibiliPlayer[class*="mode-"] .bilibili-player-video-control');
-								if (controlBar !== null ) {
-									controlBar.style = "opacity: 0;";
-								}
-							}, 3000);
-						}
-					}, true);
-				} catch (e) {console.log('adjustPlayerAutoHideControlBar：'+e);}
+				} catch (e) {console.log('adjustPlayerAutoHideSendbar：'+e);}
+			}
+		},
+		videoSeekingShowSendbar : function (set,video) {
+			if (typeof set !== 'undefined' && video !== null) {
+				video.addEventListener("seeking", function() {
+					var controlBar = querySelectorFromIframe('#bilibiliPlayer .bilibili-player-video-control-wrap');
+					var controlMask = querySelectorFromIframe('#bilibiliPlayer .bilibili-player-video-control-mask');
+					var visibleStyle = "opacity: 1; visibility: visible; ";
+					if (controlBar !== null ) {
+						controlBar.style = visibleStyle;
+						controlMask.style = visibleStyle;
+						var timer = null;
+						clearTimeout(this.timer);
+						this.timer = setTimeout(function() {
+							if (controlBar !== null ) {
+								controlBar.style = "";
+								controlMask.style = "";
+							}
+						}, 3000);
+					}
+				}, true);
 			}
 		},
 		skipSetTime : function (set,skipTime,video) {
@@ -1161,10 +1154,13 @@
 				focusDanmakuInput : function (e) {
 					var controlBtn = querySelectorFromIframe("input.bilibili-player-video-danmaku-input");
 					if (controlBtn !== null) {
-						var adjustPlayerAutoHideControlBar = querySelectorFromIframe("#adjustPlayerAutoHideControlBar");
+						var adjustPlayerAutoHideControlBar = querySelectorFromIframe("#adjustPlayerAutoHideSendbar");
 						if (adjustPlayerAutoHideControlBar !== null ) {
+							var playerVideoControl = querySelectorFromIframe(".bilibili-player-video-control-wrap");
+							playerVideoControl.style = "opacity: 1; visibility: visible";
+
 							var sendbar = querySelectorFromIframe(".bilibili-player-video-sendbar");
-							sendbar.style = "opacity: 1 !important; visibility: visible;!important;outline: none;";
+							sendbar.style = "opacity: 1 !important; visibility: visible !important; outline: none;";
 							sendbar.setAttribute("tabindex","-1");
 
 							var sendbarBlurEvent = function (e) {
@@ -1175,6 +1171,7 @@
 								if (e.keyCode == 9) {
 									querySelectorFromIframe('.bilibili-player-video video').focus();
 									querySelectorFromIframe(".bilibili-player-video-sendbar").style = "opacity: 1;";
+									querySelectorFromIframe(".bilibili-player-video-control-wrap").style = "";
 									e.preventDefault();
 									controlBtn.removeEventListener('keydown', danmakuInputKeydownEvent, false);
 								}
@@ -1454,7 +1451,8 @@
 			});
 			adjustPlayer.autoLoopVideo(setting.autoLoopVideo);
 			adjustPlayer.tabDanmulist(setting.tabDanmulist);
-			adjustPlayer.autoHideControlBar(setting.autoHideControlBar,setting.shortcuts.focusDanmakuInput,video);
+			adjustPlayer.videoSeekingShowSendbar(setting.videoSeekingShowSendbar,video);
+			adjustPlayer.autoHideSendbar(setting.autoHideSendbar,setting.shortcuts.focusDanmakuInput,video);
 			adjustPlayer.autoPlay(setting.autoPlay,video);
 			adjustPlayer.autoVideoSpeed(setting.autoVideoSpeed,setting.autoVideoSpeedValue,video);
 			adjustPlayer.skipSetTime(setting.skipSetTime,setting.skipSetTimeValue,video);
@@ -1470,7 +1468,7 @@
 				} else if(screenMode === 'normal') {
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 				}
-				adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideControlBar);
+				adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideSendbar);
 			} else {
 				if (setting.autoWebFullScreen === true) {
 					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
@@ -1479,7 +1477,7 @@
 					adjustPlayer.fixWidescreenFocusPlayer(setting);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 					adjustPlayer.autoWidescreen(setting.autoWidescreen,setting.autoWidescreenFullscreen);
-					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideControlBar);
+					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideSendbar);
 				}
 				adjustPlayer.shortcuts(setting.shortcuts);
 			}
@@ -2022,7 +2020,7 @@
             						<input type="hidden" name="focusPlayerKeyCode" list="shortcuts" KeyCode="true">
             					</label>
 								<label>
-            						<input name="focusDanmakuInput" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到弹幕框<span tooltip="使用帮助：&#10;1：焦点在弹幕框时键盘按 Tab 键隐藏弹幕框&#10;2：开启了“自动隐藏播放器控制栏”并设置了“定位到弹幕框的快捷键”之后，请用快捷键来显示弹幕框" class="tipsButton">[?]</span>
+            						<input name="focusDanmakuInput" type="checkbox" list="shortcuts"><span class="checkbox"></span>定位到弹幕框<span tooltip="使用帮助：&#10;1：焦点在弹幕框时键盘按 Tab 键隐藏弹幕框&#10;2：开启了“自动隐藏弹幕栏”并设置了“定位到弹幕框的快捷键”之后，请用快捷键来显示弹幕框" class="tipsButton">[?]</span>
 									<span class="tipsButton" action="shortcuts" typeName="focusDanmakuInput">[设置]</span>
             						<input type="text" name="focusDanmakuInputKeyName" readOnly="true" list="shortcuts">
             						<input type="hidden" name="focusDanmakuInputKeyCode" list="shortcuts" KeyCode="true">
@@ -2157,7 +2155,8 @@
 								<span tooltip="使用帮助：&#10;1：可以设置偏移位置，往上或往下移。" class="tipsButton">[?]</span>
             				</span>
             			</div></label>
-            			<label fname="autoHideControlBar"><input name="autoHideControlBar" type="checkbox"><span class="checkbox"></span>自动隐藏播放器控制栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;3：鼠标移动到播放器顶部显示弹幕栏，移动到底部显示控制栏&#10;4：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;5：此功能修改自：https://userstyles.org/styles/131642/bilibili-html5" class="tipsButton">[?]</span></label>
+            			<label fname="videoSeekingShowSendbar"><input name="videoSeekingShowSendbar" type="checkbox"><span class="checkbox"></span>快进退时显示进度条</label>
+            			<label fname="autoHideSendbar"><input name="autoHideSendbar" type="checkbox"><span class="checkbox"></span>自动隐藏弹幕栏<span tooltip="使用帮助：&#10;1：需要开启“宽屏模式”或“网页全屏模式”才会生效&#10;2：鼠标移动到播放器顶部显示弹幕栏 &#10;3：如果发现画面出现“黑边”请开启“手动指定播放器大小”功能&#10; 并使用 [调整大小] 功能调整大小&#10;" class="tipsButton">[?]</span></label>
             			<label fname="resizePlayer" class="multiLine">
             				<input name="resizePlayer" type="checkbox"><span class="checkbox"></span>指定播放器大小
             				<span class="tipsButton" action="adjustPlayerSize" tooltip="使用帮助：&#10;1：点击[调整大小]进行调整">[调整大小]</span>
