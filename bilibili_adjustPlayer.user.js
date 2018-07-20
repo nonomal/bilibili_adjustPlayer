@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_2.1
+// @version     stardust_2.2
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -364,9 +364,10 @@
 
 						//videoInfoAndUpInfoPosition
 						if (videoInfoAndUpInfoPosition === 'top') {
-							playerMarginTop = 'calc(0px + 50px + 20px + 100px)';
-							videoInfoAndUpInfo = '#viewbox_report,#v_upinfo { position: absolute !important; top: 75px !important; margin-top: 10px !important; }' +
-								'#v_upinfo{ margin-left: calc('+ width +'px / 2  + 120px); } .up-info .u-info .desc { max-width:calc(350px - 30px); } .up-info .u-info { max-width: 160px; }';
+							playerMarginTop = 'calc(0px + 50px + 20px + 120px)';
+							videoInfoAndUpInfo = '#viewbox_report,#v_upinfo { position: absolute !important; top: 70px !important;  }' +
+								'#viewbox_report { max-width:calc('+ width +'px - 384px - 20px ); }' +
+								'#v_upinfo{ margin-left: calc('+ width +'px - 384px); max-width:384px; } .up-info .u-info .desc { max-width:calc(350px - 30px); } .up-info .btn { margin-top: 50px; position: absolute; left: 64px; }';
 						} else if (videoInfoAndUpInfoPosition === 'bottom') {
 							videoInfoAndUpInfo = '';
 						} else {
