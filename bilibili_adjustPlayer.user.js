@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_2.0
+// @version     stardust_2.1
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -18,12 +18,13 @@
 (function () {
 	'use strict';
 	var adjustPlayer = {
-		autoWidescreen: function (set,fullscreen) {
+		autoWidescreen : function (set,fullscreen) {
 			if (typeof set !== 'undefined') {
 				var autoWidescreen = function () {
-					var widescreenBtn = querySelectorFromIframe('i[name="widescreen"]');
+					var widescreenBtn = querySelectorFromIframe('.bilibili-player-video-btn-widescreen');
 					if (widescreenBtn !== null) {
-						if (widescreenBtn.getAttribute('data-text') !== '退出宽屏') {
+						var dataText = widescreenBtn.querySelector('span.bilibili-player-iconfont-widescreen').getAttribute("data-text");
+						if (dataText !== '退出宽屏') {
 							doClick(widescreenBtn);
 						}
 					}
@@ -45,17 +46,19 @@
 				}
 			}
 		},
-		fixWidescreenFocusPlayer: function (setting) {
-			if (setting.autoFocusPlayer) {
-				unsafeWindow.PlayerAgent.player_widewin = null;
-				return;
-			} else if (setting.resizePlayer) {
-				unsafeWindow.PlayerAgent.player_widewin = function() {
-					adjustPlayer.autoFocusPlayer(true,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-				};
-			}
+		fixWidescreenFocusPlayer : function (setting) {
+			setTimeout(function() {
+				if (setting.autoFocusPlayer) {
+					unsafeWindow.PlayerAgent.player_widewin = null;
+					return;
+				} else if (setting.resizePlayer) {
+					unsafeWindow.PlayerAgent.player_widewin = function() {
+						adjustPlayer.autoFocusPlayer(true,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+					};
+				}
+			}, 200);
 		},
-		autoFocusPlayer: function (set,offsetType,offsetValue,isShortcut) {
+		autoFocusPlayer : function (set,offsetType,offsetValue,isShortcut) {
 			if (typeof set !== 'undefined') {
 				try{
 					var focusPlayer = function() {
@@ -95,17 +98,17 @@
 				} catch (e) {console.log('autoFocus：'+e);}
 			}
 		},
-		autoPlay: function (set,video) {
+		autoPlay : function (set,video) {
 			if (typeof set !== 'undefined' && video !== null) {
 				if (video.play) {
 					video.play();
 				}
 			}
 		},
-		hideDanmuku: function (set,type) {
+		hideDanmuku : function (set,type) {
 			if (typeof set !== 'undefined') {
 				var hideDanmuku = function () {
-					var controlBtn = querySelectorFromIframe('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-sendbar .bilibili-player-video-danmaku-root .bilibili-player-video-danmaku-switch > input');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 					}
@@ -124,7 +127,7 @@
 				}
 			}
 		},
-		hideDanmukuFilterType: function (set,type) {
+		hideDanmukuFilterType : function (set,type) {
 			if (typeof set !== 'undefined') {
 				var hideDanmukuFilterType = function (ftype) {
 					var controlBtn = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-left-block-content .bilibili-player-block-filter-type[ftype='+ ftype +']');
@@ -149,7 +152,7 @@
 				}
 			}
 		},
-		danmukuPreventShade: function (set,type) {
+		danmukuPreventShade : function (set,type) {
 			if (typeof set !== 'undefined' && typeof type !== 'undefined') {
 				try{
 					var controlBtn = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-left-preventshade input[type="checkbox"]:checked');
@@ -165,26 +168,7 @@
 				} catch (e) {console.log('danmukuPreventShade：'+e);}
 			}
 		},
-		danmakuSettingLitePanel: function (type) {
-			if (typeof type !== 'undefined') {
-				return new Promise (function(resolve, reject) {
-					var danmakuSettingLitePanel = function (type) {
-						var evt = document.createEvent('Event');
-						var panelSwitch = querySelectorFromIframe('.bilibili-player-video-control > div[name="ctlbar_danmuku_on"] i');
-						if(type === "show"){
-							evt.initEvent('mouseover', true, true);
-							panelSwitch.dispatchEvent(evt);
-						}else if(type === "hide"){
-							evt.initEvent('mouseout', true, true);
-							panelSwitch.dispatchEvent(evt);
-						}
-					};
-					danmakuSettingLitePanel(type);
-					resolve(type);
-				});
-			}
-		},
-		tabDanmulist: function (set) {
+		tabDanmulist : function (set) {
 			if (typeof set !== 'undefined') {
 				try{
 					var timerCount = 0;
@@ -205,15 +189,18 @@
 				} catch (e) {console.log('tabDanmulist：'+e);}
 			}
 		},
-		autoLoopVideo: function (set) {
+		autoLoopVideo : function (set) {
 			if (typeof set !== 'undefined') {
-				var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat > i');
+				var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat');
 				if (controlBtn !== null) {
-					doClick(controlBtn);
+					var dataText = controlBtn.querySelector('span.bilibili-player-iconfont-repeat').getAttribute("data-text");
+					if (dataText !== '关闭洗脑循环') {
+						doClick(controlBtn);
+					}
 				}
 			}
 		},
-		autoWebFullScreen: function (set) {
+		autoWebFullScreen : function (set) {
 			if (typeof set !== 'undefined') {
 				var controlBtn = querySelectorFromIframe('.bilibili-player-video-web-fullscreen > i');
 				if (controlBtn !== null) {
@@ -223,13 +210,13 @@
 				}
 			}
 		},
-		doubleClickFullScreen: function (set,delayed) {
+		doubleClickFullScreen : function (set,delayed) {
 			if (typeof set !== 'undefined' && typeof delayed !== 'undefined') {
 				try{
+					var fullScreenBtn = querySelectorFromIframe('.bilibili-player-video-btn-fullscreen');
 					if (delayed === 0 ) {
 						var video = querySelectorFromIframe('.bilibili-player-video video');
 						video.addEventListener('dblclick', function () {
-							var fullScreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"]');
 							if (fullScreenBtn !== null) {
 								doClick(fullScreenBtn);
 							}
@@ -241,16 +228,14 @@
 							videoParentNode.addEventListener('click', function () {
 								clearTimeout(this.dblclickTimer);
 								this.dblclickTimer = setTimeout(function() {
-									var playPauseBtn = querySelectorFromIframe('.bilibili-player-video-control > div.bilibili-player-video-btn-start');
+									var playPauseBtn = querySelectorFromIframe('.bilibili-player-video-btn-start');
 									if (playPauseBtn !== null) {
 										doClick(playPauseBtn);
 									}
 								}, delayed);
 							});
-
 							videoParentNode.addEventListener('dblclick', function () {
 								clearTimeout(this.dblclickTimer);
-								var fullScreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"]');
 								if (fullScreenBtn !== null) {
 									doClick(fullScreenBtn);
 								}
@@ -286,7 +271,7 @@
 				} catch (e) {console.log('doubleClickFullScreen：'+e);}
 			}
 		},
-		autoVideoSpeed: function (set,speed,video) {
+		autoVideoSpeed : function (set,speed,video) {
 			if (typeof set !== 'undefined' && video !== null) {
 				try {
 					var adjustPlayerVideoPlaybackRate = sessionStorage.getItem("adjustPlayer_videoPlaybackRate");
@@ -299,7 +284,7 @@
 				catch(e) {console.log('autoVideoSpeed：'+e);}
 			}
 		},
-		autoLightOn: function (set,type,callback) {
+		autoLightOn : function (set,type,callback) {
 			if (typeof set !== 'undefined') {
 				try{
 					var isActiveContextMenu = querySelectorFromIframe('.bilibili-player-context-menu-container.black');
@@ -365,7 +350,7 @@
 				catch(e) {console.log('autoLightOn：'+e);}
 			}
 		},
-		resizePlayer: function (set,width,ratio,videoInfoAndUpInfoPosition,isAutohideControlbar) {
+		resizePlayer : function (set,width,ratio,videoInfoAndUpInfoPosition,isAutohideControlbar) {
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				try{
 					var resizePlayer = function() {
@@ -375,11 +360,13 @@
 						var playerMarginTop = 'calc(0px + 50px + 20px)';
 						var playerBottomBarHeight = isAutohideControlbar && screenMode === 'widescreen' ?  playerBottomBarHeight = '0px' : playerBottomBarHeight = '46px';
 						var playerNormalModeHeight = 'calc( '+ playerNormalModeWidth +' / calc('+ ratio +') + '+ playerBottomBarHeight +')';
-						var videoInfoAndUpInfo = '#viewbox_report,#v_upinfo{ position: absolute !important; top: 75px !important; } #v_upinfo{ max-width: 324px !important; }';
+						var videoInfoAndUpInfo = '';
 
 						//videoInfoAndUpInfoPosition
 						if (videoInfoAndUpInfoPosition === 'top') {
-							playerMarginTop = 'calc(0px + 50px + 20px + 120px)';
+							playerMarginTop = 'calc(0px + 50px + 20px + 100px)';
+							videoInfoAndUpInfo = '#viewbox_report,#v_upinfo { position: absolute !important; top: 75px !important; margin-top: 10px !important; }' +
+								'#v_upinfo{ margin-left: calc('+ width +'px / 2  + 120px); } .up-info .u-info .desc { max-width:calc(350px - 30px); } .up-info .u-info { max-width: 160px; }';
 						} else if (videoInfoAndUpInfoPosition === 'bottom') {
 							videoInfoAndUpInfo = '';
 						} else {
@@ -454,8 +441,7 @@
 						//普通模式下超过最小高度不调整
 						if (screenMode === "normal") {
 							var videoHeight = document.querySelector('#bofqi:not(.mini-player).stardust-player').offsetHeight;
-							//console.log(videoHeight);
-							if(videoHeight <= 416){
+							if(videoHeight <= 408){
 								var adjustMiniPlayerSizeCSS = document.querySelector('#adjustPlayerSize');
 								if (adjustMiniPlayerSizeCSS !== null) {
 									adjustMiniPlayerSizeCSS.remove();
@@ -513,7 +499,7 @@
 				} catch (e) {console.log('resizePlayer：'+e);}
 			}
 		},
-		resizeMiniPlayer: function (set,width,isResizable) {
+		resizeMiniPlayer : function (set,width,isResizable) {
 			if (typeof set !== 'undefined' && typeof width !== 'undefined') {
 				var resize = function() {
 					var css = [
@@ -857,22 +843,23 @@
 					}
 				},
 				showHideDanmuku : function () {
-					var controlBtn = querySelectorFromIframe('.bilibili-player-video-control .bilibili-player-video-btn-danmaku ');
-					var settingPanel = querySelectorFromIframe('.bilibili-player-video-danmaku-setting-wrap');
-					if (controlBtn !== null) {
-						doClick(controlBtn);
-						settingPanel.style.display = "none";
-
-						var tipsValue = function() {
-							if (controlBtn.getAttribute("name") === "ctlbar_danmuku_close") {
-								return "关闭弹幕";
-							} else {
-								return "打开弹幕";
-							}
-						};
-
-						shortcut.shortcutsTips("弹幕",tipsValue());
-					}
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-sendbar .bilibili-player-video-danmaku-root .bilibili-player-video-danmaku-switch > input');
+					createMouseoverAndMouseoutEvent('show',controlBtn);
+					createMouseoverAndMouseoutEvent('hide',controlBtn);
+					setTimeout(function() {
+						if (controlBtn !== null) {
+							doClick(controlBtn);
+							var tipsValue = function() {
+								var chooseDanmaku = querySelectorFromIframe('.bilibili-player-video-danmaku-root .bilibili-player-video-danmaku-switch .choose_danmaku');
+								if (chooseDanmaku.innerHTML === "关闭弹幕") {
+									return "打开弹幕";
+								} else {
+									return "关闭弹幕";
+								}
+							};
+							shortcut.shortcutsTips("弹幕",tipsValue());
+						}
+					}, 200);
 				},
 				videoSpeed : function (type) {
 					var video = querySelectorFromIframe('.bilibili-player-video video');
@@ -918,31 +905,31 @@
 					}
 				},
 				playerWide : function () {
-					var controlBtn = querySelectorFromIframe('i[name="widescreen"]');
-					var fullscreenBtn = querySelectorFromIframe('div[name="browser_fullscreen"] > i');
-					if (controlBtn !== null) {
-						doClick(controlBtn);
-
-						var tipsValue = function() {
-							if (controlBtn.getAttribute("data-text") === "宽屏模式" && fullscreenBtn.getAttribute("data-text") === "进入全屏") {
-								return "退出宽屏";
-							} else if (controlBtn.getAttribute("data-text") === "宽屏模式" && fullscreenBtn.getAttribute("data-text") === "退出全屏") {
-								return "全屏状态下无法使用";
-							} else {
-								return "宽屏模式";
-							}
-						};
-
-						shortcut.shortcutsTips("宽屏模式",tipsValue());
+					var widescreenBtn = querySelectorFromIframe('.bilibili-player-video-btn-widescreen');
+					if (widescreenBtn !== null) {
+						doClick(widescreenBtn);
 					}
+
+					var tipsValue = function() {
+						var dataText = widescreenBtn.querySelector('span.bilibili-player-iconfont-widescreen').getAttribute("data-text");
+						if (isFullscreen()) {
+							return "全屏状态下无法使用";
+						} else if (dataText === "宽屏模式") {
+							return "退出宽屏";
+						} else {
+							return "进入宽屏";
+						}
+					};
+
+					shortcut.shortcutsTips("宽屏模式",tipsValue());
 				},
 				fullscreen : function () {
-					var controlBtn = querySelectorFromIframe('div[name="browser_fullscreen"] > i');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-fullscreen');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
 						var tipsValue = function() {
-							if (controlBtn.getAttribute("data-text") === "进入全屏") {
+							if (isFullscreen()) {
 								return "退出全屏";
 							} else {
 								return "进入全屏";
@@ -1052,9 +1039,9 @@
 					}
 				},
 				videoMute : function () {
-					var controlBtn = querySelectorFromIframe('div[name="vol"]');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-volume');
 					if (controlBtn !== null) {
-						doClick(controlBtn.querySelector('i'));
+						doClick(controlBtn.querySelector('.bilibili-player-iconfont-volume'));
 
 						var tipsValue = function() {
 							if (controlBtn.className.search("video-state-volume-min") !== -1) {
@@ -1103,7 +1090,7 @@
 					adjustPlayer.autoLightOn(true,"ONOFF",shortcut.shortcutsTips("开/关灯",tipsValue()));
 				},
 				loopVideoOnOff : function () {
-					var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat > i');
+					var controlBtn = querySelectorFromIframe('.bilibili-player-video-btn-repeat');
 					if (controlBtn !== null) {
 						doClick(controlBtn);
 
@@ -1115,10 +1102,11 @@
 						}, 200);
 
 						var tipsValue = function() {
-							if (controlBtn.getAttribute("data-text") !== "打开洗脑循环") {
-								return "开启";
-							} else {
+							var dataText = controlBtn.querySelector('.bilibili-player-video-btn-repeat span.bilibili-player-iconfont-repeat').getAttribute("data-text");
+							if (dataText !== '关闭洗脑循环') {
 								return "关闭";
+							} else {
+								return "开启";
 							}
 						};
 						shortcut.shortcutsTips("循环播放",tipsValue());
@@ -1435,14 +1423,15 @@
 			//修复没开启“自动宽屏模式”自动关灯失效
 			setTimeout(function() {adjustPlayer.autoLightOn(setting.autoLightOn);}, 200);
 			//“隐藏弹幕”最后执行
-			adjustPlayer.danmakuSettingLitePanel("show").then(function(value){
-				if(value === "show"){
+			var danmakuSettingLitePanel = querySelectorFromIframe('.bilibili-player-video-sendbar .bilibili-player-video-danmaku-root .bilibili-player-video-danmaku-setting .bp-svgicon');
+			createMouseoverAndMouseoutEvent('show',danmakuSettingLitePanel).then(function(value){
+				if(value === 'show'){
 					Promise.all([
 						adjustPlayer.hideDanmukuFilterType(setting.hideDanmukuFilterType,setting.hideDanmukuFilterType_Type),
 						adjustPlayer.danmukuPreventShade(setting.danmukuPreventShade,setting.danmukuPreventShadeType)
 					]).then(function(values){
-						adjustPlayer.danmakuSettingLitePanel("hide").then(function(value){
-							if(value === "hide"){
+						createMouseoverAndMouseoutEvent('hide',danmakuSettingLitePanel).then(function(value){
+							if (value === 'hide') {
 								adjustPlayer.hideDanmuku(setting.hideDanmuku,setting.hideDanmukuType);
 							}
 						});
@@ -2399,7 +2388,7 @@
             </div>
             <div class="tips-text">
 			  <p>调整后在页面可视区域宽度过小时，不会生效。</p>
-			  <p>调整后的大小有宽度限制，最小宽度为740像素，最小高度为416像素。</p>
+			  <p>调整后的大小有宽度限制，最小宽度为740像素，最小高度为408像素。</p>
 			  <p>调整后的大小在“普通模式”下会根据“播放器顶栏”、“弹幕栏”、“播放器控件”的大小自动计算出合适的尺寸。</p>
             </div>
             <div class="drag-arrow">
@@ -2463,18 +2452,18 @@
 					var customVideoInfoAndUpInfoPosition = document.querySelector('#adjust-player-tips-save select[name="customVideoInfoAndUpInfoPosition"]');
 					if (action === "save") {
 						try {
-							var minWidth = 740;
-							var minHeight = 416;
+							var minWidth = 724;
+							var minHeight = 408;
 							var adjustPlayerTips = document.querySelector('#adjust-player-tips');
 							var width = parseInt(adjustPlayerTips.clientWidth);
 							var height = parseInt(adjustPlayerTips.clientHeight);
 
-							if(height < minHeight){
-								unsafeWindow.alert('保存设置失败\n播放器高度调整后过小，最小416像素，请重新调整！');
+							if(height <= minHeight){
+								unsafeWindow.alert('保存设置失败\n播放器高度调整后过小，不能少于408像素，请重新调整！');
 								return;
 							} else {
 								if(width <= minWidth){
-									width = "740";
+									width = "724";
 								} else {
 									width = adjustPlayerTips.clientWidth;
 								}
@@ -2542,7 +2531,7 @@
 				var width = adjustPlayerTips.clientWidth;
 				var height = adjustPlayerTips.clientHeight;
 				var newHeight = Number(width / window.adjustPlayerTipsRatio ).toFixed();
-				adjustPlayerTips.setAttribute("style","position: relative; z-index:10000; margin:0 auto; width: "+ width + "px; height:"+ newHeight +"px; min-width:740px;");
+				adjustPlayerTips.setAttribute("style","position: relative; z-index:10000; margin:0 auto; width: "+ width + "px; height:"+ newHeight +"px; min-width:724px;");
 				adjustPlayerTipsW.innerHTML = width;
 				adjustPlayerTipsH.innerHTML = newHeight;
 				adjustPlayerTipsDragArrow.setAttribute("style", "top:calc("+ height +"px - 80px);right:20px;");
@@ -2567,7 +2556,7 @@
 			  <input type="hidden" name="keyCode" >
 			  <input type="hidden" name="typeName" >
 			</p>
-			<p style="color: #99a2aa; border: 1px solid #e5e9ef;background-color: #f4f5f7; border-radius: 10px; margin: 10px 0; padding: 20px;">
+			<p class="tips-box">
 			  <span style="padding: 0 10px;font-weight: bold;">* 请不要在意英文的按键名称。<br/></span>
 			  <span style="padding: 0 10px;font-weight: bold;">* 请关闭输入法后设置。<br/></span>
 			  <span style="padding: 0 10px;font-weight: bold;">* 默认的快捷键（已知的）有：</span><br/><span style="margin-left: 27px; display: inline-block;">空格 （播放/暂停）<br/>方向键上、下 （音量+/音量-）<br/>方向键左、右 （后退/快进） <br/>最好避开这些按键，和浏览器默认的快捷键，脚本没有阻止默认行为。</span>
@@ -2705,7 +2694,7 @@
 			   <input type="radio" id="localStorage" name="storageType" value="localStorage">
 			      <label for="localStorage">localStorage（浏览器存储）</label>
 			</p>
-			<ol style="color: #99a2aa; border: 1px solid #e5e9ef;background-color: #f4f5f7; border-radius: 10px; margin: 10px 0; padding: 20px 20px 20px 40px;">
+			<ol class="tips-box" style="padding: 20px 20px 20px 40px;">
 			   <li style="list-style: decimal;"><span style="font-weight: bold;color:red;">如果没有出现“无法保存脚本数据”的情况，请无视这个设置！</span></li>
 			   <li style="list-style: decimal;"><span style="font-weight: bold;">出现“无法保存脚本数据”的情况，请把“存储类型” 更改为 “localStorage（浏览器存储）”</span></li>
 			   <li style="list-style: decimal;"><span style="font-weight: bold;">如果更改为 “localStorage（浏览器存储）” www.bilibili.com 和 bangumi.bilibili.com 的设置不会同步，需要手动重新设置。</span></li>
@@ -2812,8 +2801,8 @@
 				#adjust-player .title span{font-size:12px;color:#fff;background-color:#00a1d6;display:inline-block;width:22px;height:22px;position:absolute;right:25px;border-radius:50%;line-height:22px;transition:.1s;transition-property:background-color;margin-top:2px}
 				#adjust-player .title span:hover{background-color:#00b5e5;cursor:pointer}
 				#adjust-player .title [action="help"]{right:52px}
-				#adjust-player fieldset{border:1px solid #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
-				#adjust-player legend{width: unset;font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
+				#adjust-player fieldset{box-shadow: 0 2px 0 #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
+				#adjust-player legend{width: unset;font-weight:bold;font-size:14px;margin-left:11px;box-shadow: 0px 2px 0px #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
 				#adjust-player legend label span{color:#6d757a;font-size:12px}
 				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-appearance:unset!important;-moz-appearance:unset!important;appearance:unset!important;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
 				#adjust-player input[type="number"]{-webkit-appearance:textfield!important;-moz-appearance:menulist!important;appearance:textfield!important}
@@ -2845,6 +2834,7 @@
 				#adjust-player .btn:hover{color:#fff;background:#00b5e5;border-color:#00b5e5}
 				#adjust-player .btn-cancel{display:inline-block;text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
 				#adjust-player .btn-cancel:hover{color:#00a1d6;border-color:#00a1d6;background:#fff}
+				#adjust-player .tips-box{color: #99a2aa;box-shadow: 0 2px 0 #e5e9ef;background-color: #f4f5f7;border-radius: 10px;margin: 10px 0;padding: 20px}
 				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap;position:relative}
 				#adjust-player .modalWindow{z-index:100000}
 				#adjust-player .shortcutsItem.disabled > label{color:#99a2aa !important}
@@ -2927,6 +2917,32 @@
 			return "unknownPlayer";
 		}
 	}
+	function isFullscreen () {
+		var element = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+		if (typeof element === 'undefined') {
+			return false;
+		} else {
+			return true;
+		}
+	}
+	function createMouseoverAndMouseoutEvent(type,element) {
+		if (typeof type !== 'undefined' && typeof element !== 'undefined') {
+			return new Promise (function(resolve, reject) {
+				var createEvent = function (type) {
+					var evt = document.createEvent('Event');
+					if (type === "show") {
+						evt.initEvent('mouseover', true, true);
+						element.dispatchEvent(evt);
+					} else if(type === "hide") {
+						evt.initEvent('mouseout', true, true);
+						element.dispatchEvent(evt);
+					}
+				};
+				createEvent(type);
+				resolve(type);
+			});
+		}
+	}
 	function doClick(obj) {
 		if (obj !== null) {
 			if (obj.click) {
@@ -2941,20 +2957,25 @@
 	function contextMenuClick(element) {
 		var ev;
 		if (document.createEvent) {
+			/*
+			console.log(element);
+			var clientX = element.offsetLeft;
+			var clientY = element.offsetTop + element.offsetHeight;
+			*/
 			ev = new MouseEvent("contextmenu", {
-				screenX: 0,
-				screenY: 0,
-				clientX: element.offsetLeft,
-				clientY: element.offsetTop + element.offsetHeight,
+				screenX: 10,
+				screenY: 10,
+				clientX: 10,
+				clientY: 10,
 				button: 2
 			});
 			element.dispatchEvent(ev);
 		} else {
 			ev = document.createEventObject();
-			ev.screenX = 0;
-			ev.screenY = 0;
-			ev.clientX = element.offsetLeft;
-			ev.clientY = element.offsetTop + element.offsetHeight;
+			ev.screenX = 10;
+			ev.screenY = 10;
+			ev.clientX = 10;
+			ev.clientY = 10;
 			ev.button = 2;
 			document.fireEvent('contextmenu', ev);
 		}
