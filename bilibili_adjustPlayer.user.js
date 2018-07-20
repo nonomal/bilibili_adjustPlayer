@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_2.2
+// @version     stardust_2.3
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -46,17 +46,44 @@
 				}
 			}
 		},
-		fixWidescreenFocusPlayer : function (setting) {
-			setTimeout(function() {
+		fixWidescreenFocusPlayer : function (setting,isReload,autoWidescreenCallback) {
+			var timerCount = 0;
+			var timer = window.setInterval(function() {
+				if (timerCount >= 20) {
+					clearInterval(timer);
+				}
+				timerCount++;
+				if (typeof unsafeWindow.PlayerAgent !== 'undefined') {
+					if (typeof unsafeWindow.PlayerAgent.player_widewin !== 'undefined') {
+						//console.log(unsafeWindow.PlayerAgent.player_widewin);
+						clearInterval(timer);
+						fixWidescreenFocusPlayer();
+					}
+				}
+			}, 200);
+
+			var fixWidescreenFocusPlayer = function() {
+				var callback = function(){
+					if (typeof autoWidescreenCallback === 'function') {
+						if (isReload) {
+							autoWidescreenCallback(true,setting.autoWidescreenFullscreen);
+						} else {
+							autoWidescreenCallback(setting.autoWidescreen,setting.autoWidescreenFullscreen);
+						}
+					}
+				};
+
 				if (setting.autoFocusPlayer) {
 					unsafeWindow.PlayerAgent.player_widewin = null;
+					callback();
 					return;
 				} else if (setting.resizePlayer) {
 					unsafeWindow.PlayerAgent.player_widewin = function() {
 						adjustPlayer.autoFocusPlayer(true,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 					};
+					callback();
 				}
-			}, 200);
+			};
 		},
 		autoFocusPlayer : function (set,offsetType,offsetValue,isShortcut) {
 			if (typeof set !== 'undefined') {
@@ -1450,8 +1477,7 @@
 			if (isReload) {
 				var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
 				if(screenMode === 'widescreen') {
-					adjustPlayer.fixWidescreenFocusPlayer(setting);
-					adjustPlayer.autoWidescreen(true,setting.autoWidescreenFullscreen);
+					adjustPlayer.fixWidescreenFocusPlayer(setting,isReload,adjustPlayer.autoWidescreen);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
 				} else if(screenMode === 'webfullscreen') {
 					adjustPlayer.autoWebFullScreen(true);
@@ -1464,9 +1490,8 @@
 					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
 				} else {
 					//开启“网页全屏”后，不加载的功能
-					adjustPlayer.fixWidescreenFocusPlayer(setting);
+					adjustPlayer.fixWidescreenFocusPlayer(setting,isReload,adjustPlayer.autoWidescreen);
 					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-					adjustPlayer.autoWidescreen(setting.autoWidescreen,setting.autoWidescreenFullscreen);
 					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideSendbar);
 				}
 				adjustPlayer.shortcuts(setting.shortcuts);
@@ -2802,8 +2827,8 @@
 				#adjust-player .title span{font-size:12px;color:#fff;background-color:#00a1d6;display:inline-block;width:22px;height:22px;position:absolute;right:25px;border-radius:50%;line-height:22px;transition:.1s;transition-property:background-color;margin-top:2px}
 				#adjust-player .title span:hover{background-color:#00b5e5;cursor:pointer}
 				#adjust-player .title [action="help"]{right:52px}
-				#adjust-player fieldset{box-shadow: 0 2px 0 #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
-				#adjust-player legend{width: unset;font-weight:bold;font-size:14px;margin-left:11px;box-shadow: 0px 2px 0px #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
+				#adjust-player fieldset{border:1px solid #e5e9ef;border-radius:4px;padding:0 6px 6px;background-color:#f4f5f7;margin-bottom:10px}
+				#adjust-player legend{width: unset;font-weight:bold;font-size:14px;margin-left:11px;border:1px solid #e5e9ef;background-color:#fff;padding:0 10px;border-radius:4px}
 				#adjust-player legend label span{color:#6d757a;font-size:12px}
 				#adjust-player input,#adjust-player select,#adjust-player option{-webkit-appearance:unset!important;-moz-appearance:unset!important;appearance:unset!important;-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;vertical-align:middle;background-color:#fff;border:1px solid #99a2aa;border-radius:3px}
 				#adjust-player input[type="number"]{-webkit-appearance:textfield!important;-moz-appearance:menulist!important;appearance:textfield!important}
@@ -2835,13 +2860,13 @@
 				#adjust-player .btn:hover{color:#fff;background:#00b5e5;border-color:#00b5e5}
 				#adjust-player .btn-cancel{display:inline-block;text-align:center;cursor:pointer;color:#222;border:1px solid #ccd0d7;background-color:#fff;border-radius:4px;transition:.1s;transition-property:background-color,border,color}
 				#adjust-player .btn-cancel:hover{color:#00a1d6;border-color:#00a1d6;background:#fff}
-				#adjust-player .tips-box{color: #99a2aa;box-shadow: 0 2px 0 #e5e9ef;background-color: #f4f5f7;border-radius: 10px;margin: 10px 0;padding: 20px}
+				#adjust-player .tips-box{color: #99a2aa;border:1px solid #e5e9ef;background-color: #f4f5f7;border-radius: 10px;margin: 10px 0;padding: 20px}
 				#adjust-player form .wrapper{overflow-x:hidden;white-space:nowrap;position:relative}
 				#adjust-player .modalWindow{z-index:100000}
 				#adjust-player .shortcutsItem.disabled > label{color:#99a2aa !important}
 				#adjust-player-tips{width:100%;height:100%;line-height:16px;color:#333;overflow:auto;resize:horizontal;background:linear-gradient(135deg,#E6E7E8 0,#E6E7E8 99%,#fff 95%)}
 				#adjust-player-tips p,#adjust-player-tips-save p{text-align:left}
-				#adjust-player-tips-save .content{position:absolute;top:20px;width:410px;font-size:16px;line-height:24px;padding:20px;background:#fff;border:1px solid #eee;border-radius:4px;z-index:1}
+				#adjust-player-tips-save .content{position:absolute;top:20px;width:414px;font-size:16px;line-height:24px;padding:20px;background:#fff;border:1px solid #eee;border-radius:4px;z-index:1}
 				#adjust-player-tips-save .content .bold{font-weight:bold;font-size:18px;text-align:center;color:#333;padding-bottom:18px}
 				#adjust-player-tips-save .content .btn{display:inline-block;margin-top:10px;padding:4px 0;width:120px;color:#fff;cursor:pointer;text-align:center;border-radius:4px;background-color:#00a1d6;vertical-align:middle;border:1px solid #00a1d6;transition:.1s;transition-property:background-color,border,color;-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 				#adjust-player-tips-save .content .btn:hover{background-color:#00b5e5;border-color:#00b5e5}
