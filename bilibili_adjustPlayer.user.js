@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_2.3
+// @version     stardust_2.4
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -23,8 +23,8 @@
 				var autoWidescreen = function () {
 					var widescreenBtn = querySelectorFromIframe('.bilibili-player-video-btn-widescreen');
 					if (widescreenBtn !== null) {
-						var dataText = widescreenBtn.querySelector('span.bilibili-player-iconfont-widescreen').getAttribute("data-text");
-						if (dataText !== '退出宽屏') {
+						var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+						if (screenMode !== "widescreen") {
 							doClick(widescreenBtn);
 						}
 					}
@@ -231,7 +231,8 @@
 			if (typeof set !== 'undefined') {
 				var controlBtn = querySelectorFromIframe('.bilibili-player-video-web-fullscreen > i');
 				if (controlBtn !== null) {
-					if (controlBtn.getAttribute("data-text") === "网页全屏") {
+					var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+					if (screenMode !== "webfullscreen") {
 						doClick(controlBtn);
 					}
 				}
@@ -939,10 +940,10 @@
 					}
 
 					var tipsValue = function() {
-						var dataText = widescreenBtn.querySelector('span.bilibili-player-iconfont-widescreen').getAttribute("data-text");
-						if (isFullscreen()) {
+						var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+						if (screenMode === "fullscreen") {
 							return "全屏状态下无法使用";
-						} else if (dataText === "宽屏模式") {
+						} else if (screenMode === "widescreen") {
 							return "退出宽屏";
 						} else {
 							return "进入宽屏";
@@ -973,10 +974,11 @@
 						doClick(controlBtn);
 
 						var tipsValue = function() {
-							if (controlBtn.getAttribute("data-text") === "网页全屏") {
-								return "退出全屏";
+							var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
+							if (screenMode === "webfullscreen") {
+								return "退出网页全屏";
 							} else {
-								return "全屏";
+								return "进入网页全屏";
 							}
 						};
 
