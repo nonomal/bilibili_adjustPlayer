@@ -6,7 +6,7 @@
 // @homepageURL https://github.com/mickey7q7/bilibili_adjustPlayer
 // @include     http*://www.bilibili.com/video/av*
 // @description 调整B站播放器设置，增加一些实用的功能。
-// @version     stardust_2.4
+// @version     stardust_2.5
 // @grant       GM.setValue
 // @grant       GM_setValue
 // @grant       GM.getValue
@@ -1478,15 +1478,17 @@
 
 			if (isReload) {
 				var screenMode = sessionStorage.getItem("adjustPlayer_screenMode");
-				if(screenMode === 'widescreen') {
-					adjustPlayer.fixWidescreenFocusPlayer(setting,isReload,adjustPlayer.autoWidescreen);
-					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-				} else if(screenMode === 'webfullscreen') {
-					adjustPlayer.autoWebFullScreen(true);
-				} else if(screenMode === 'normal') {
-					adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
-				}
-				adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideSendbar);
+				setTimeout(function() {
+					if(screenMode === 'widescreen') {
+						adjustPlayer.fixWidescreenFocusPlayer(setting,isReload,adjustPlayer.autoWidescreen);
+						adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+					} else if(screenMode === 'webfullscreen') {
+						adjustPlayer.autoWebFullScreen(true);
+					} else if(screenMode === 'normal') {
+						adjustPlayer.autoFocusPlayer(setting.autoFocusPlayer,setting.autoFocusPlayerOffsetType,setting.autoFocusPlayerOffsetValue);
+					}
+					adjustPlayer.resizePlayer(setting.resizePlayer,setting.resizePlayerWidth,setting.resizePlayerRatio,setting.resizePlayerVideoInfoAndUpInfoPosition,setting.autoHideSendbar);
+				}, 800);
 			} else {
 				if (setting.autoWebFullScreen === true) {
 					adjustPlayer.autoWebFullScreen(setting.autoWebFullScreen);
